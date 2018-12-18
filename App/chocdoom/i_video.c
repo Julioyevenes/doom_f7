@@ -42,7 +42,101 @@ rcsid[] = "$Id: i_x.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 #include "stm32f769i_discovery_lcd.h"
 #include "usbh_hid.h"
 
-extern USBH_HandleTypeDef hUSBHost;
+typedef struct _KeyPressed_TypeDef
+{
+	uint8_t ascii[6];
+} KeyPressed_TypeDef;
+
+static  const  int8_t  HID_KEYBRD_Key[] = {
+  '\0',  '`',  '1',  '2',  '3',  '4',  '5',  '6',
+  '7',  '8',  '9',  '0',  '-',  '=',  '\0', '\r',
+  '\t',  'q',  'w',  'e',  'r',  't',  'y',  'u',
+  'i',  'o',  'p',  '[',  ']',  '\\',
+  '\0',  'a',  's',  'd',  'f',  'g',  'h',  'j',
+  'k',  'l',  ';',  '\'', '\0', '\n',
+  '\0',  '\0', 'z',  'x',  'c',  'v',  'b',  'n',
+  'm',  ',',  '.',  '/',  '\0', '\0',
+  '\0',  '\0', '\0', ' ',  '\0', '\0', '\0', '\0',
+  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+  '\0',  '\0', '\0', '\0', '\0', '\r', '\0', '\0',
+  '\0', '\0', '\0', '\0', '\0', '\0',
+  '\0',  '\0', '7',  '4',  '1',
+  '\0',  '/',  '8',  '5',  '2',
+  '0',   '*',  '9',  '6',  '3',
+  '.',   '-',  '+',  '\0', '\n', '\0', '\0', '\0', '\0', '\0', '\0',
+  '\0',  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+  '\0', '\0', '\0', '\0'
+};
+
+static  const  int8_t  HID_KEYBRD_ShiftKey[] = {
+  '\0', '~',  '!',  '@',  '#',  '$',  '%',  '^',  '&',  '*',  '(',  ')',
+  '_',  '+',  '\0', '\0', '\0', 'Q',  'W',  'E',  'R',  'T',  'Y',  'U',
+  'I',  'O',  'P',  '{',  '}',  '|',  '\0', 'A',  'S',  'D',  'F',  'G',
+  'H',  'J',  'K',  'L',  ':',  '"',  '\0', '\n', '\0', '\0', 'Z',  'X',
+  'C',  'V',  'B',  'N',  'M',  '<',  '>',  '?',  '\0', '\0',  '\0', '\0',
+  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+  '\0', '\0', '\0', '\0', '\0', '\0', '\0',    '\0', '\0', '\0', '\0', '\0',
+  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'
+};
+
+static  const  uint8_t  HID_KEYBRD_Codes[] = {
+  0,     0,    0,    0,   31,   50,   48,   33,
+  19,   34,   35,   36,   24,   37,   38,   39,       /* 0x00 - 0x0F */
+  52,    51,   25,   26,   17,   20,   32,   21,
+  23,   49,   18,   47,   22,   46,    2,    3,       /* 0x10 - 0x1F */
+  4,    5,    6,    7,    8,    9,   10,   11,
+  43,  110,   15,   16,   61,   12,   13,   27,       /* 0x20 - 0x2F */
+  28,   29,   42,   40,   41,    1,   53,   54,
+  55,   30,  112,  113,  114,  115,  116,  117,       /* 0x30 - 0x3F */
+  118,  119,  120,  121,  122,  123,  124,  125,
+  126,   75,   80,   85,   76,   81,   86,   89,       /* 0x40 - 0x4F */
+  79,   84,   83,   90,   95,  100,  105,  106,
+  108,   93,   98,  103,   92,   97,  102,   91,       /* 0x50 - 0x5F */
+  96,  101,   99,  104,   45,  129,    0,    0,
+  0,    0,    0,    0,    0,    0,    0,    0,       /* 0x60 - 0x6F */
+  0,    0,    0,    0,    0,    0,    0,    0,
+  0,    0,    0,    0,    0,    0,    0,    0,       /* 0x70 - 0x7F */
+  0,    0,    0,    0,    0,  107,    0,   56,
+  0,    0,    0,    0,    0,    0,    0,    0,       /* 0x80 - 0x8F */
+  0,    0,    0,    0,    0,    0,    0,    0,
+  0,    0,    0,    0,    0,    0,    0,    0,       /* 0x90 - 0x9F */
+  0,    0,    0,    0,    0,    0,    0,    0,
+  0,    0,    0,    0,    0,    0,    0,    0,       /* 0xA0 - 0xAF */
+  0,    0,    0,    0,    0,    0,    0,    0,
+  0,    0,    0,    0,    0,    0,    0,    0,       /* 0xB0 - 0xBF */
+  0,    0,    0,    0,    0,    0,    0,    0,
+  0,    0,    0,    0,    0,    0,    0,    0,       /* 0xC0 - 0xCF */
+  0,    0,    0,    0,    0,    0,    0,    0,
+  0,    0,    0,    0,    0,    0,    0,    0,       /* 0xD0 - 0xDF */
+  58,   44,   60,  127,   64,   57,   62,  128        /* 0xE0 - 0xE7 */
+};
+
+KeyPressed_TypeDef KeyASCII, lastKeyASCII;
+
+void USBH_HID_GetASCIICode_Multi(HID_KEYBD_Info_TypeDef *info)
+{
+  uint8_t i;
+
+  if((info->lshift == 1) || (info->rshift))
+  {
+	for(i = 0; i < 6 ; i++)
+	{
+  		KeyASCII.ascii[i] =  HID_KEYBRD_ShiftKey[HID_KEYBRD_Codes[info->keys[i]]];
+	}
+  }
+  else
+  {
+	for(i = 0; i < 6 ; i++)
+	{
+  		KeyASCII.ascii[i] =  HID_KEYBRD_Key[HID_KEYBRD_Codes[info->keys[i]]];
+	}
+  }
+}
+
+extern USBH_HandleTypeDef hUSBHost[5];
 extern uint8_t host_state;
 
 // The screen buffer; this is modified to draw things to the screen
@@ -95,7 +189,6 @@ typedef struct
 static uint16_t rgb565_palette[256];
 
 static bool last_lalt, last_lshift;
-static char last_char;
 
 void I_InitGraphics (void)
 {
@@ -132,108 +225,119 @@ void I_GetEvent (void)
 {
 	event_t event;
 	HID_KEYBD_Info_TypeDef *k_pinfo;
-	char c;
+	uint8_t i;
 
 	if(host_state == HOST_USER_CLASS_ACTIVE)
 	{
-		k_pinfo = USBH_HID_GetKeybdInfo(&hUSBHost);
+		k_pinfo = USBH_HID_GetKeybdInfo(&hUSBHost[4]);
 		if(k_pinfo != NULL)
 		{
-			c = USBH_HID_GetASCIICode(k_pinfo);
+			USBH_HID_GetASCIICode_Multi(k_pinfo);
 
-			if( ( last_char != c ) && ( last_char == 0 || c == 0 ) )
+			for(i = 0; i < 6; i++)
 			{
-				event.type = c ? ev_keydown : ev_keyup;
-				event.data1 = -1;
-				event.data2 = -1;
-				event.data3 = -1;
-				event.data4 = -1;
-
-				if(event.type != ev_keyup)
-					last_char = c;
-
-				switch(last_char)
+				if( ( lastKeyASCII.ascii[i] != KeyASCII.ascii[i] ) && ( lastKeyASCII.ascii[i] == 0 || KeyASCII.ascii[i] == 0 ) )
 				{
-					case ' ':
-						event.data1 = KEY_FIRE;
-						break;
+					event.type = KeyASCII.ascii[i] ? ev_keydown : ev_keyup;
+					event.data1 = -1;
+					event.data2 = -1;
+					event.data3 = -1;
+					event.data4 = -1;
 
-					case '\n':
-						event.data1 = KEY_ENTER;
-						break;
+					if(event.type != ev_keyup)
+						lastKeyASCII.ascii[i] = KeyASCII.ascii[i];
 
-					case '\r':
-						event.data1 = KEY_ESCAPE;
-						break;
+					switch(lastKeyASCII.ascii[i])
+					{
+						case ' ':
+							event.data1 = KEY_FIRE;
+							break;
 
-					case '\t':
-						event.data1 = KEY_TAB;
-						break;
+						case '\n':
+							event.data1 = KEY_ENTER;
+							break;
 
-					case 'p':
-						event.data1 = KEY_PAUSE;
-						break;
+						case '\r':
+							event.data1 = KEY_ESCAPE;
+							break;
 
-					case '8':
-						event.data1 = KEY_F2;
-						break;
+						case '\t':
+							event.data1 = KEY_TAB;
+							break;
 
-					case '9':
-						event.data1 = KEY_F3;
-						break;
+						case 'p':
+							event.data1 = KEY_PAUSE;
+							break;
 
-					case 'w':
-						event.data1 = KEY_UPARROW;
-						break;
+						case '8':
+							event.data1 = KEY_F2;
+							break;
 
-					case 's':
-						event.data1 = KEY_DOWNARROW;
-						break;
+						case '9':
+							event.data1 = KEY_F3;
+							break;
 
-					case 'a':
-						event.data1 = KEY_LEFTARROW;
-						break;
+						case 'w':
+							event.data1 = KEY_UPARROW;
+							break;
 
-					case 'd':
-						event.data1 = KEY_RIGHTARROW;
-						break;
+						case 's':
+							event.data1 = KEY_DOWNARROW;
+							break;
 
-					case 'q':
-						event.data1 = KEY_STRAFE_L;
-						break;
+						case 'a':
+							event.data1 = KEY_STRAFE_L;
+							break;
 
-					case 'e':
-						event.data1 = KEY_STRAFE_R;
-						break;
+						case 'd':
+							event.data1 = KEY_STRAFE_R;
+							break;
 
-					case '1':
-						event.data1 = '1';
-						break;
+						case 'u':
+							event.data1 = KEY_PGUP;
+							break;
 
-					case '2':
-						event.data1 = '2';
-						break;
+						case 'j':
+							event.data1 = KEY_INS;
+							break;
 
-					case '3':
-						event.data1 = '3';
-						break;
+						case 'q':
+							event.data1 = '[';
+							break;
 
-					case '4':
-						event.data1 = '4';
-						break;
+						case 'e':
+							event.data1 = ']';
+							break;
 
-					case '5':
-						event.data1 = '5';
-						break;
+						case '1':
+							event.data1 = '1';
+							break;
 
-					case '6':
-						event.data1 = '6';
-						break;
+						case '2':
+							event.data1 = '2';
+							break;
+
+						case '3':
+							event.data1 = '3';
+							break;
+
+						case '4':
+							event.data1 = '4';
+							break;
+
+						case '5':
+							event.data1 = '5';
+							break;
+
+						case '6':
+							event.data1 = '6';
+							break;
+					}
+
+					D_PostEvent (&event);
+
+					lastKeyASCII.ascii[i] = KeyASCII.ascii[i];
 				}
-
-				D_PostEvent (&event);
-
-				last_char = c;
 			}
 
 			if(last_lalt != k_pinfo->lalt)
@@ -260,6 +364,22 @@ void I_GetEvent (void)
 
 				D_PostEvent (&event);
 			}
+		}
+
+		HID_MOUSE_Info_TypeDef *m_pinfo;
+
+		m_pinfo = USBH_HID_GetMouseInfo(&hUSBHost[3]);
+		if(m_pinfo != NULL)
+		{
+			event.type = ev_mouse;
+			event.data1 = m_pinfo->buttons[2] << 2 | \
+				      	  m_pinfo->buttons[1] << 1 | \
+						  m_pinfo->buttons[0];
+			event.data2 = m_pinfo->x;
+			event.data3 = 0;
+			event.data4 = -1;
+
+			D_PostEvent (&event);
 		}
 	}
 }

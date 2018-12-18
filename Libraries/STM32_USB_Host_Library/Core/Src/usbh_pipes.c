@@ -27,6 +27,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_pipes.h"
+#define MAX_PIPES		USBH_MAX_PIPES_NBR
 
 /** @addtogroup USBH_LIB
   * @{
@@ -141,6 +142,7 @@ uint8_t USBH_AllocPipe  (USBH_HandleTypeDef *phost, uint8_t ep_addr)
   
   pipe =  USBH_GetFreePipe(phost);
 
+USBH_UsrLog("addrd: 0x%02X, pipe: %d", ep_addr, pipe);
   if (pipe != 0xFFFF)
   {
 	phost->Pipes[pipe] = 0x8000 | ep_addr;
@@ -157,10 +159,9 @@ uint8_t USBH_AllocPipe  (USBH_HandleTypeDef *phost, uint8_t ep_addr)
   */
 USBH_StatusTypeDef USBH_FreePipe  (USBH_HandleTypeDef *phost, uint8_t idx)
 {
-   if(idx < 11)
-   {
+   if(idx < MAX_PIPES)
 	 phost->Pipes[idx] &= 0x7FFF;
-   }
+
    return USBH_OK;
 }
 
@@ -174,14 +175,27 @@ static uint16_t USBH_GetFreePipe (USBH_HandleTypeDef *phost)
 {
   uint8_t idx = 0;
   
-  for (idx = 0 ; idx < 11 ; idx++)
+  for (idx = 0 ; idx < MAX_PIPES ; idx++)
   {
 	if ((phost->Pipes[idx] & 0x8000) == 0)
 	{
 	   return idx;
 	} 
   }
+USBH_UsrLog("No FREE Pipes !!!!!!");
   return 0xFFFF;
+}
+uint8_t USBH_GetNumFreePipes(USBH_HandleTypeDef *phost)
+{
+	uint8_t idx = 0, count = 0;
+
+	for (idx = 0 ; idx < MAX_PIPES ; idx++)
+	{
+		if ((phost->Pipes[idx] & 0x8000) == 0)
+			count++;
+	}
+
+	return count;
 }
 /**
 * @}

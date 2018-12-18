@@ -54,6 +54,7 @@
   */
 #include "usbh_core.h"
 #include "usbh_hid.h"
+#include "usbh_hub.h"
 
 /**
   * @brief   FREERTOS

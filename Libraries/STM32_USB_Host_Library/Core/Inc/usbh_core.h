@@ -39,6 +39,10 @@
 #include "usbh_ioreq.h"
 #include "usbh_pipes.h"
 #include "usbh_ctlreq.h"
+#define USBH_ADDRESS_DEFAULT                     0
+#define USBH_ADDRESS_ASSIGNED                    1
+#define USBH_MPS_DEFAULT                         0x40
+#define USBH_MPS_LOWSPEED                        8
 
 /** @addtogroup USBH_LIB
   * @{
@@ -121,6 +125,7 @@ USBH_StatusTypeDef   USBH_LL_DeInit       (USBH_HandleTypeDef *phost);
 USBH_StatusTypeDef   USBH_LL_Start        (USBH_HandleTypeDef *phost);
 USBH_StatusTypeDef   USBH_LL_Stop         (USBH_HandleTypeDef *phost);
 
+USBH_StatusTypeDef   USBH_LL_StopHC(USBH_HandleTypeDef *phost, uint8_t chnum); // MORI
 USBH_StatusTypeDef   USBH_LL_Connect      (USBH_HandleTypeDef *phost);
 USBH_StatusTypeDef   USBH_LL_Disconnect   (USBH_HandleTypeDef *phost);
 USBH_SpeedTypeDef    USBH_LL_GetSpeed     (USBH_HandleTypeDef *phost);
@@ -142,6 +147,8 @@ uint8_t              USBH_LL_GetToggle    (USBH_HandleTypeDef *phost, uint8_t );
 void                 USBH_Delay (uint32_t Delay);
 void                 USBH_LL_SetTimer     (USBH_HandleTypeDef *phost, uint32_t );  
 void                 USBH_LL_IncTimer     (USBH_HandleTypeDef *phost);  
+
+HAL_StatusTypeDef    USBH_LL_SetupEP0(USBH_HandleTypeDef *phost);
 /**
   * @}
   */ 

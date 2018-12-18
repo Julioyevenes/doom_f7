@@ -50,10 +50,14 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+extern uint8_t _isr_vector_ram_start asm("_isr_vector_ram_start");     /* Defined by the linker. */
+extern uint8_t _isr_vector_flash_start asm("_isr_vector_flash_start"); /* Defined by the linker. */
+extern uint8_t _isr_vector_flash_end asm("_isr_vector_flash_end");     /* Defined by the linker. */
+
 FATFS 	FatFs;
 char 	Path[4];
 
-USBH_HandleTypeDef hUSBHost;
+USBH_HandleTypeDef hUSBHost[5], *phUSBHost = NULL;
 uint8_t host_state;
 osThreadId thread_id;
 
@@ -68,6 +72,7 @@ static void CPU_CACHE_Enable(void);
 static void USBThread(void const *argument);
 static void DoomThread(void const *argument);
 static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id);
+static void HUB_Process(void);
 
 extern void D_DoomMain (void);
 
@@ -80,6 +85,14 @@ extern void D_DoomMain (void);
   */
 int main(void)
 {
+	/* Copy ISRs to RAM */
+	memcpy(	(uint8_t *)&_isr_vector_ram_start,
+			(uint8_t *)&_isr_vector_flash_start,
+			&_isr_vector_flash_end - &_isr_vector_flash_start );
+
+	/* Relocate the vector table */
+	SCB->VTOR = (uint32_t) &_isr_vector_ram_start;
+
   /* This project template calls firstly two functions in order to configure MPU feature 
      and to enable the CPU Cache, respectively MPU_Config() and CPU_CACHE_Enable().
      These functions are provided as template implementation that User may integrate 
@@ -115,14 +128,21 @@ int main(void)
   while( BSP_SD_IsDetected() != 1 );
   while( f_mount(&FatFs, (TCHAR const*)Path, 1) != FR_OK );
 
-  /* Start Host Library */
-  USBH_Init(&hUSBHost, USBH_UserProcess, 0);
+  memset(&hUSBHost[0], 0, sizeof(USBH_HandleTypeDef));
+
+  hUSBHost[0].valid   = 1;
+  hUSBHost[0].address = USBH_DEVICE_ADDRESS;
+  hUSBHost[0].Pipes   = USBH_malloc(sizeof(uint32_t) * USBH_MAX_PIPES_NBR);
+
+  /* Init Host Library */
+  USBH_Init(&hUSBHost[0], USBH_UserProcess, 0);
 
   /* Add Supported Class */
-  USBH_RegisterClass(&hUSBHost, USBH_HID_CLASS);
+  USBH_RegisterClass(&hUSBHost[0], USBH_HID_CLASS);
+  USBH_RegisterClass(&hUSBHost[0], USBH_HUB_CLASS);
 
   /* Start Host Process */
-  USBH_Start(&hUSBHost);
+  USBH_Start(&hUSBHost[0]);
 
   /* USB task */
   osThreadDef(USB_Thread, USBThread, osPriorityNormal, 0, 8 * configMINIMAL_STACK_SIZE);
@@ -146,13 +166,53 @@ static void USBThread(void const * argument)
 	for( ;; )
 	{
 	    /* USB Host Background task */
-	    USBH_Process(&hUSBHost);
+		HUB_Process();
 	}
 }
 
 static void DoomThread(void const * argument)
 {
 	D_DoomMain ();
+}
+
+/**
+  * @brief
+  * @param
+  * @retval
+  */
+static void HUB_Process(void)
+{
+	static uint8_t current_port = -1;
+
+	if(phUSBHost != NULL && phUSBHost->valid == 1)
+	{
+		USBH_Process(phUSBHost);
+
+		if(phUSBHost->busy)
+			return;
+	}
+
+	for( ;; )
+	{
+		current_port++;
+
+		if(current_port > MAX_HUB_PORTS)
+			current_port = 0;
+
+		if(hUSBHost[current_port].valid)
+		{
+			phUSBHost = &hUSBHost[current_port];
+			USBH_LL_SetupEP0(phUSBHost);
+
+			if(phUSBHost->valid == 3)
+			{
+				phUSBHost->valid = 1;
+				phUSBHost->busy  = 1;
+			}
+
+			break;
+		}
+	}
 }
 
 /**
@@ -187,6 +247,21 @@ static void USBH_UserProcess(USBH_HandleTypeDef *phost, uint8_t id)
   		default:
     			break;
   	}
+}
+
+/**
+  * @brief
+  * @param
+  * @retval
+  */
+void HAL_Delay(__IO uint32_t Delay)
+{
+	uint32_t tick;
+
+	tick = (SystemCoreClock/1000) * Delay;
+	while(tick--)
+	{
+	}
 }
 
 /**
@@ -230,10 +305,10 @@ static void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 25;
-  RCC_OscInitStruct.PLL.PLLN = 432;  
+  RCC_OscInitStruct.PLL.PLLN = 480;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 9;
-  RCC_OscInitStruct.PLL.PLLR = 7;  
+  RCC_OscInitStruct.PLL.PLLQ = 10;
+  RCC_OscInitStruct.PLL.PLLR = 8;
   
   ret = HAL_RCC_OscConfig(&RCC_OscInitStruct);
   if(ret != HAL_OK)

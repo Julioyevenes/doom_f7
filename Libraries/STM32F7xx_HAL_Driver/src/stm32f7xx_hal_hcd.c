@@ -830,6 +830,12 @@ static void HCD_HC_IN_IRQHandler   (HCD_HandleTypeDef *hhcd, uint8_t chnum)
     __HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_DTERR);
   }    
   
+  if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_BBERR)
+  {
+  	__HAL_HCD_UNMASK_HALT_HC_INT(chnum);
+  	__HAL_HCD_CLEAR_HC_INT(chnum, USB_OTG_HCINT_BBERR);
+  }
+
   if ((USBx_HC(chnum)->HCINT) &  USB_OTG_HCINT_FRMOR)
   {
     __HAL_HCD_UNMASK_HALT_HC_INT(chnum); 

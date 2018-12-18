@@ -243,7 +243,7 @@ USBH_StatusTypeDef USBH_BulkReceiveData(USBH_HandleTypeDef *phost,
   */
 USBH_StatusTypeDef USBH_InterruptReceiveData(USBH_HandleTypeDef *phost, 
                                 uint8_t *buff, 
-                                uint8_t length,
+                                uint16_t length,
                                 uint8_t pipe_num)
 {
   USBH_LL_SubmitURB (phost,                     /* Driver handle    */
@@ -269,7 +269,7 @@ USBH_StatusTypeDef USBH_InterruptReceiveData(USBH_HandleTypeDef *phost,
   */
 USBH_StatusTypeDef USBH_InterruptSendData(USBH_HandleTypeDef *phost, 
                                 uint8_t *buff, 
-                                uint8_t length,
+                                uint16_t length,
                                 uint8_t pipe_num)
 {
   USBH_LL_SubmitURB (phost,                     /* Driver handle    */

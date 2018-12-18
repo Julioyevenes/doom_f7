@@ -28,41 +28,9 @@
   */ 
 
 
-/* Includes ------------------------------------------------------------------*/
 #include "usbh_hid_keybd.h"
 #include "usbh_hid_parser.h"
 
-/** @addtogroup USBH_LIB
-* @{
-*/
-
-/** @addtogroup USBH_CLASS
-* @{
-*/
-
-/** @addtogroup USBH_HID_CLASS
-* @{
-*/
-
-/** @defgroup USBH_HID_KEYBD 
-* @brief    This file includes HID Layer Handlers for USB Host HID class.
-* @{
-*/ 
-
-/** @defgroup USBH_HID_KEYBD_Private_TypesDefinitions
-* @{
-*/ 
-/**
-* @}
-*/ 
-
-
-/** @defgroup USBH_HID_KEYBD_Private_Defines
-* @{
-*/ 
-/**
-* @}
-*/ 
 #ifndef AZERTY_KEYBOARD
   #define QWERTY_KEYBOARD
 #endif
@@ -76,26 +44,9 @@
 #define  KBD_RIGHT_GUI                                  0x80
 #define  KBR_MAX_NBR_PRESSED                            6
 
-/** @defgroup USBH_HID_KEYBD_Private_Macros
-* @{
-*/ 
-/**
-* @}
-*/ 
-
-/** @defgroup USBH_HID_KEYBD_Private_FunctionPrototypes
-* @{
-*/ 
 static USBH_StatusTypeDef USBH_HID_KeybdDecode(USBH_HandleTypeDef *phost);
-/**
-* @}
-*/ 
- 
-/** @defgroup USBH_HID_KEYBD_Private_Variables
-* @{
-*/
 
-HID_KEYBD_Info_TypeDef     keybd_info;
+static HID_KEYBD_Info_TypeDef    keybd_info;
 uint32_t                   keybd_report_data[2];
 
 static const HID_Report_ItemTypedef imp_0_lctrl={
@@ -305,7 +256,6 @@ static  const  uint8_t  HID_KEYBRD_Codes[] = {
   0,    0,    0,    0,    0,    0,    0,    0,       /* 0xD0 - 0xDF */
   58,   44,   60,  127,   64,   57,   62,  128        /* 0xE0 - 0xE7 */
 };
-
 /**
   * @brief  USBH_HID_KeybdInit 
   *         The function init the HID keyboard.
@@ -315,7 +265,9 @@ static  const  uint8_t  HID_KEYBRD_Codes[] = {
 USBH_StatusTypeDef USBH_HID_KeybdInit(USBH_HandleTypeDef *phost)
 {
   uint32_t x;
-  HID_HandleTypeDef *HID_Handle =  (HID_HandleTypeDef *) phost->pActiveClass->pData;  
+  uint8_t idx = phost->device.current_interface;
+  HID_HandleTypeDef *HID_Handle = phost->USBH_ClassTypeDef_pData[idx];
+
     
   keybd_info.lctrl=keybd_info.lshift= 0;
   keybd_info.lalt=keybd_info.lgui= 0;
@@ -328,13 +280,13 @@ USBH_StatusTypeDef USBH_HID_KeybdInit(USBH_HandleTypeDef *phost)
     keybd_report_data[x]=0;
   }
   
-  if(HID_Handle->length > (sizeof(keybd_report_data)/sizeof(uint32_t)))
+  if(HID_Handle->length[0] > (sizeof(keybd_report_data)/sizeof(uint32_t)))
   {
-    HID_Handle->length = (sizeof(keybd_report_data)/sizeof(uint32_t));
+    HID_Handle->length[0] = (sizeof(keybd_report_data)/sizeof(uint32_t));
   }
   HID_Handle->pData = (uint8_t*)keybd_report_data;
   fifo_init(&HID_Handle->fifo, phost->device.Data, HID_QUEUE_SIZE * sizeof(keybd_report_data));
-  
+
   return USBH_OK;    
 }
 
@@ -346,14 +298,13 @@ USBH_StatusTypeDef USBH_HID_KeybdInit(USBH_HandleTypeDef *phost)
   */
 HID_KEYBD_Info_TypeDef *USBH_HID_GetKeybdInfo(USBH_HandleTypeDef *phost)
 {
-  if(USBH_HID_KeybdDecode(phost) == USBH_OK)
- {
-  return &keybd_info;
- }
- else
- {
-  return NULL; 
- }  
+	if(USBH_HID_GetDeviceType(phost) == HID_KEYBOARD)
+	{
+		if(USBH_HID_KeybdDecode(phost) == USBH_OK)
+			return &keybd_info;
+	}
+
+	return NULL;
 }
 
 /**
@@ -365,14 +316,15 @@ HID_KEYBD_Info_TypeDef *USBH_HID_GetKeybdInfo(USBH_HandleTypeDef *phost)
 static USBH_StatusTypeDef USBH_HID_KeybdDecode(USBH_HandleTypeDef *phost)
 {
   uint8_t x;
-  
-  HID_HandleTypeDef *HID_Handle =  (HID_HandleTypeDef *) phost->pActiveClass->pData;
-  if(HID_Handle->length == 0)
+  uint8_t idx = phost->device.current_interface;
+  HID_HandleTypeDef *HID_Handle = phost->USBH_ClassTypeDef_pData[idx];
+
+  if(HID_Handle->length[0] == 0)
   {
     return USBH_FAIL;
   }
-  /*Fill report */
-  if(fifo_read(&HID_Handle->fifo, &keybd_report_data, HID_Handle->length) ==  HID_Handle->length)
+  //Fill report
+  if(fifo_read(&HID_Handle->fifo, &keybd_report_data, HID_Handle->length[0]) ==  HID_Handle->length[0])
   {
     
     keybd_info.lctrl=(uint8_t)HID_ReadItem((HID_Report_ItemTypedef *) &imp_0_lctrl, 0);
@@ -403,7 +355,7 @@ static USBH_StatusTypeDef USBH_HID_KeybdDecode(USBH_HandleTypeDef *phost)
   */
 uint8_t USBH_HID_GetASCIICode(HID_KEYBD_Info_TypeDef *info)
 {
-  uint8_t   output;  
+  uint8_t output = 0;
   if((info->lshift == 1) || (info->rshift))
   {
   output =  HID_KEYBRD_ShiftKey[HID_KEYBRD_Codes[info->keys[0]]];

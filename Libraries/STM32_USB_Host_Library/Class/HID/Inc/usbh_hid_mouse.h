@@ -33,73 +33,30 @@
  extern "C" {
 #endif
 
-/* Includes ------------------------------------------------------------------*/
 #include "usbh_hid.h"
 
-/** @addtogroup USBH_LIB
-  * @{
-  */
-
-/** @addtogroup USBH_CLASS
-  * @{
-  */
-
-/** @addtogroup USBH_HID_CLASS
-  * @{
-  */
-
-/** @defgroup USBH_HID_MOUSE
-  * @brief This file is the Header file for usbh_hid_mouse.c
-  * @{
-  */ 
-
-
-/** @defgroup USBH_HID_MOUSE_Exported_Types
-  * @{
-  */ 
-
-typedef struct _HID_MOUSE_Info
+/*typedef struct _HID_MOUSE_Info
 {
-  uint8_t              x; 
-  uint8_t              y;  
-  uint8_t              buttons[3];
-}
-HID_MOUSE_Info_TypeDef;
+	int16_t    x;
+	int16_t    y;
+	uint8_t    wheel;
+	uint16_t   button;
 
-/**
-  * @}
-  */ 
+} HID_MOUSE_Info_TypeDef;*/
 
-/** @defgroup USBH_HID_MOUSE_Exported_Defines
-  * @{
-  */ 
-/**
-  * @}
-  */ 
+ typedef struct _HID_MOUSE_Info
+ {
+   int8_t              x;
+   int8_t              y;
+   uint8_t              buttons[3];
+ }
+ HID_MOUSE_Info_TypeDef;
 
-/** @defgroup USBH_HID_MOUSE_Exported_Macros
-  * @{
-  */ 
-/**
-  * @}
-  */ 
 
-/** @defgroup USBH_HID_MOUSE_Exported_Variables
-  * @{
-  */ 
-/**
-  * @}
-  */ 
-
-/** @defgroup USBH_HID_MOUSE_Exported_FunctionsPrototype
-  * @{
-  */ 
 USBH_StatusTypeDef USBH_HID_MouseInit(USBH_HandleTypeDef *phost);
 HID_MOUSE_Info_TypeDef *USBH_HID_GetMouseInfo(USBH_HandleTypeDef *phost);
+//USBH_StatusTypeDef USBH_HID_Mouse_DecodeData(USBH_HandleTypeDef *phost, HID_Report_ItemTypedef *parser_data, uint8_t *pData, uint16_t length);
 
-/**
-  * @}
-  */ 
 
 #ifdef __cplusplus
 }
@@ -107,19 +64,4 @@ HID_MOUSE_Info_TypeDef *USBH_HID_GetMouseInfo(USBH_HandleTypeDef *phost);
 
 #endif /* __USBH_HID_MOUSE_H */
 
-/**
-  * @}
-  */ 
-
-/**
-  * @}
-  */ 
-
-/**
-  * @}
-  */ 
-
-/**
-  * @}
-  */ 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

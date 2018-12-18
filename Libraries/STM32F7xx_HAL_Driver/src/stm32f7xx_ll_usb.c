@@ -751,7 +751,7 @@ HAL_StatusTypeDef USB_EP0StartXfer(USB_OTG_GlobalTypeDef *USBx , USB_OTG_EPTypeD
     }
     
     /* EP enable, IN data in FIFO */
-    USBx_INEP(ep->num)->DIEPCTL |= (USB_OTG_DIEPCTL_CNAK | USB_OTG_DIEPCTL_EPENA);
+//    USBx_INEP(ep->num)->DIEPCTL |= (USB_OTG_DIEPCTL_CNAK | USB_OTG_DIEPCTL_EPENA);
     
     if (dma == 1)
     {
@@ -1580,6 +1580,15 @@ HAL_StatusTypeDef USB_HC_StartXfer(USB_OTG_GlobalTypeDef *USBx, USB_OTG_HCTypeDe
     USBx_HC(hc->ch_num)->HCDMA = (uint32_t)hc->xfer_buff;
   }
   
+  USBx_HC(hc->ch_num)->HCCHAR &= ~USB_OTG_HCCHAR_LSDEV;
+  USBx_HC(hc->ch_num)->HCCHAR |= (((hc->speed == USB_OTG_SPEED_LOW) << 17) & USB_OTG_HCCHAR_LSDEV);
+
+  USBx_HC(hc->ch_num)->HCCHAR &= ~USB_OTG_HCCHAR_DAD;
+  USBx_HC(hc->ch_num)->HCCHAR |= ((hc->dev_addr << 22) & USB_OTG_HCCHAR_DAD);
+
+  USBx_HC(hc->ch_num)->HCCHAR &= ~USB_OTG_HCCHAR_MPSIZ;
+  USBx_HC(hc->ch_num)->HCCHAR |= (hc->max_packet & USB_OTG_HCCHAR_MPSIZ);
+
   is_oddframe = (USBx_HOST->HFNUM & 0x01) ? 0 : 1;
   USBx_HC(hc->ch_num)->HCCHAR &= ~USB_OTG_HCCHAR_ODDFRM;
   USBx_HC(hc->ch_num)->HCCHAR |= (is_oddframe << 29);

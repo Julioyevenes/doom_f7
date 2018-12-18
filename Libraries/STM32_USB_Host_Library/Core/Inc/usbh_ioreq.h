@@ -122,12 +122,12 @@ USBH_StatusTypeDef USBH_BulkSendData (USBH_HandleTypeDef *phost,
 
 USBH_StatusTypeDef USBH_InterruptReceiveData(USBH_HandleTypeDef *phost, 
                                        uint8_t             *buff, 
-                                       uint8_t             length,
+                                       uint16_t             length,
                                        uint8_t             hc_num);
 
 USBH_StatusTypeDef USBH_InterruptSendData(USBH_HandleTypeDef *phost, 
                                     uint8_t *buff, 
-                                    uint8_t length,
+                                    uint16_t length,
                                     uint8_t hc_num);
 
 

@@ -50,7 +50,7 @@
   */ 
 
 #ifndef NULL
-#define NULL  0
+#define NULL ((void *)0)
 #endif
 
 #ifndef FALSE
@@ -182,7 +182,7 @@
 
 #define USBH_DEVICE_ADDRESS_DEFAULT                     0
 #define USBH_MAX_ERROR_COUNT                            2
-#define USBH_DEVICE_ADDRESS                             1
+#define USBH_DEVICE_ADDRESS                             5
 
 
 /**
@@ -377,8 +377,9 @@ typedef enum
 typedef enum 
 {
   CMD_IDLE =0,
-  CMD_SEND,
-  CMD_WAIT
+  CMD_SEND,				// 1
+  CMD_WAIT,				// 2
+  CMD_ERROR,			// 3
 } CMD_StateTypeDef;  
 
 typedef enum {
@@ -408,10 +409,15 @@ typedef struct
   uint8_t               pipe_size;  
   uint8_t               *buff;
   uint16_t              length;
-  uint16_t              timer;  
+  uint32_t              timer;
   USB_Setup_TypeDef     setup;
   CTRL_StateTypeDef     state;  
   uint8_t               errorcount;  
+//MORI
+  uint8_t toggle_in;
+  uint8_t toggle_out;
+  uint8_t data_pid_in;
+  uint8_t data_pid_out;
 
 } USBH_CtrlTypeDef;
 
@@ -443,7 +449,8 @@ typedef struct
   USBH_StatusTypeDef  (*Requests)    (struct _USBH_HandleTypeDef *phost);  
   USBH_StatusTypeDef  (*BgndProcess) (struct _USBH_HandleTypeDef *phost);
   USBH_StatusTypeDef  (*SOFProcess) (struct _USBH_HandleTypeDef *phost);  
-  void*                pData;
+  USBH_StatusTypeDef  (*Parameter)   (struct _USBH_HandleTypeDef *phost, uint8_t param, uint8_t *data, uint16_t *length);
+//  void*                pData;
 } USBH_ClassTypeDef;
 
 /* USB Host handle structure */
@@ -457,7 +464,7 @@ typedef struct _USBH_HandleTypeDef
   USBH_ClassTypeDef*    pClass[USBH_MAX_NUM_SUPPORTED_CLASS];
   USBH_ClassTypeDef*    pActiveClass;
   uint32_t              ClassNumber;
-  uint32_t              Pipes[15];
+  uint32_t              *Pipes;//[15];
   __IO uint32_t         Timer;
   uint8_t               id;  
   void*                 pData;                  
@@ -468,6 +475,18 @@ typedef struct _USBH_HandleTypeDef
   osThreadId            thread; 
 #endif  
   
+// MORI
+  __IO uint8_t valid;
+  __IO uint8_t busy;
+
+//  __IO uint8_t transfering;
+
+  uint8_t hub;
+  uint8_t address;
+
+  uint8_t prescaler;
+  uint8_t interfaces;
+  void*   USBH_ClassTypeDef_pData[USBH_MAX_NUM_INTERFACES];
 } USBH_HandleTypeDef;
 
 

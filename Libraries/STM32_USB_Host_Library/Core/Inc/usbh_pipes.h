@@ -99,8 +99,8 @@ uint8_t USBH_AllocPipe  (USBH_HandleTypeDef *phost,
 USBH_StatusTypeDef USBH_FreePipe  (USBH_HandleTypeDef *phost, 
                                    uint8_t idx);
 
-
-
+//MORI
+uint8_t USBH_GetNumFreePipes(USBH_HandleTypeDef *phost);
 
 /**
   * @}

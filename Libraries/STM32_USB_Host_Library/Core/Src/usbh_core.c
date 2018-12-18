@@ -30,6 +30,8 @@
 #include "usbh_core.h"
 
 
+extern USBH_HandleTypeDef hUSBHost[5];
+extern HCD_HandleTypeDef hhcd;
 /** @addtogroup USBH_LIB
   * @{
   */
@@ -48,9 +50,7 @@
 /** @defgroup USBH_CORE_Private_Defines
   * @{
   */ 
-#define USBH_ADDRESS_DEFAULT                     0
-#define USBH_ADDRESS_ASSIGNED                    1      
-#define USBH_MPS_DEFAULT                         0x40
+
 /**
   * @}
   */ 
@@ -146,7 +146,7 @@ USBH_StatusTypeDef  USBH_DeInit(USBH_HandleTypeDef *phost)
   
   if(phost->pData != NULL)
   {
-    phost->pActiveClass->pData = NULL;
+//    phost->pActiveClass->pData = NULL;
     USBH_LL_Stop(phost);
   }
 
@@ -223,6 +223,17 @@ USBH_StatusTypeDef  USBH_RegisterClass(USBH_HandleTypeDef *phost, USBH_ClassType
   return status;
 }
 
+static int getInterfaceIdxFromNum(USBH_HandleTypeDef *phost, uint8_t num)
+{
+	int i = 0;
+	for(;i < phost->device.CfgDesc.bNumInterfaces; ++i)
+	{
+		if(phost->device.CfgDesc.Itf_Desc[i].bInterfaceNumber == num)
+			return i;
+	}
+
+	return -1;
+}
 /**
   * @brief  USBH_SelectInterface 
   *         Select current interface.
@@ -234,18 +245,23 @@ USBH_StatusTypeDef USBH_SelectInterface(USBH_HandleTypeDef *phost, uint8_t inter
 {
   USBH_StatusTypeDef   status = USBH_OK;
   
-  if(interface < phost->device.CfgDesc.bNumInterfaces)
+USBH_UsrLog ("Switching to Interface (#%d)", interface);
+  if(phost->device.current_interface != interface)
   {
-    phost->device.current_interface = interface;
-    USBH_UsrLog ("Switching to Interface (#%d)", interface);
-    USBH_UsrLog ("Class    : %xh", phost->device.CfgDesc.Itf_Desc[interface].bInterfaceClass );
-    USBH_UsrLog ("SubClass : %xh", phost->device.CfgDesc.Itf_Desc[interface].bInterfaceSubClass );
-    USBH_UsrLog ("Protocol : %xh", phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol );                 
-  }
-  else
-  {
+	  int val = getInterfaceIdxFromNum(phost, interface);
+	  if(val >= 0 && val < phost->device.CfgDesc.bNumInterfaces)
+      {
+		phost->device.current_interface = val; //interface;
+
+		//USBH_UsrLog ("Class    : %xh", phost->device.CfgDesc.Itf_Desc[interface].bInterfaceClass );
+		//USBH_UsrLog ("SubClass : %xh", phost->device.CfgDesc.Itf_Desc[interface].bInterfaceSubClass );
+		//USBH_UsrLog ("Protocol : %xh", phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol );
+      }
+      else
+      {
     USBH_ErrLog ("Cannot Select This Interface.");
     status = USBH_FAIL; 
+	  }
   }
   return status;  
 }
@@ -289,6 +305,7 @@ uint8_t  USBH_FindInterface(USBH_HandleTypeDef *phost, uint8_t Class, uint8_t Su
     {
       return  if_ix;
     }
+//		USBH_UsrLog ("CLASS: 0x%02X, SUBCLASS: 0x%02X, PROTO: 0x%02X", pif->bInterfaceClass, pif->bInterfaceSubClass, pif->bInterfaceProtocol);
     if_ix++;
   }
   return 0xFF;
@@ -425,6 +442,13 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
     /* Wait for 100 ms after Reset */
     USBH_Delay(100); 
           
+    if(!phost->device.is_connected)
+    {
+USBH_UsrLog ("DEVICE DISCONNECTED DURING CONNECTION DELAY");
+    	phost->gState = HOST_DEV_DISCONNECTED;
+    	return USBH_OK;
+    }
+
     phost->device.speed = USBH_LL_GetSpeed(phost);
     
     phost->gState = HOST_ENUMERATION;
@@ -432,6 +456,9 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
     phost->Control.pipe_out = USBH_AllocPipe (phost, 0x00);
     phost->Control.pipe_in  = USBH_AllocPipe (phost, 0x80);    
     
+
+    if(phost->device.speed == USBH_SPEED_LOW)
+    	phost->Control.pipe_size = USBH_MPS_LOWSPEED;
     
     /* Open Control pipes */
     USBH_OpenPipe (phost,
@@ -509,30 +536,38 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
     if(phost->ClassNumber == 0)
     {
       USBH_UsrLog ("No Class has been registered.");
+phost->gState  = HOST_ABORT_STATE;
     }
     else
     {
       phost->pActiveClass = NULL;
+      uint8_t itf = phost->device.current_interface;
       
       for (idx = 0; idx < USBH_MAX_NUM_SUPPORTED_CLASS ; idx ++)
       {
-        if(phost->pClass[idx]->ClassCode == phost->device.CfgDesc.Itf_Desc[0].bInterfaceClass)
+    	  if(phost->pClass[idx] != NULL)
+    	  {
+    		  if((phost->pClass[idx]->ClassCode == phost->device.CfgDesc.Itf_Desc[itf].bInterfaceClass)	||
+   				  (phost->pClass[idx]->ClassCode == 0x03 && phost->device.DevDesc.bDeviceClass == 0xFF) )
         {
           phost->pActiveClass = phost->pClass[idx];
         }
+    	  }
       }
       
       if(phost->pActiveClass != NULL)
       {
-        if(phost->pActiveClass->Init(phost)== USBH_OK)
+    	  status = phost->pActiveClass->Init(phost);
+        if(status == USBH_OK)
         {
           phost->gState  = HOST_CLASS_REQUEST; 
           USBH_UsrLog ("%s class started.", phost->pActiveClass->Name);
           
           /* Inform user that a class has been activated */
+          if(phost->pUser != NULL)
           phost->pUser(phost, HOST_USER_CLASS_SELECTED);   
         }
-        else
+        else if(status != USBH_BUSY)
         {
           phost->gState  = HOST_ABORT_STATE;
           USBH_UsrLog ("Device not supporting %s class.", phost->pActiveClass->Name);
@@ -582,6 +617,25 @@ USBH_StatusTypeDef  USBH_Process(USBH_HandleTypeDef *phost)
 
   case HOST_DEV_DISCONNECTED :
     
+USBH_UsrLog("HOST_DEV_DISCONNECTED %d", phost->address);
+
+	// MORI - Hub disconnecting, remove all plugged devices
+	{
+		int i;
+		for(i = 1; i < 5; ++i)
+		{
+			if(hUSBHost[i].valid)
+			{
+				if(hUSBHost[i].pActiveClass != NULL)
+				{
+					hUSBHost[i].pActiveClass->DeInit(&hUSBHost[i]);
+					hUSBHost[i].pActiveClass = NULL;
+				}
+
+				memset(&hUSBHost[i], 0, sizeof(USBH_HandleTypeDef));
+			}
+		}
+	}
     DeInitStateMachine(phost);  
     
     /* Re-Initilaize Host for new Enumeration */
@@ -638,6 +692,7 @@ static USBH_StatusTypeDef USBH_HandleEnum (USBH_HandleTypeDef *phost)
                            USBH_EP_CONTROL,
                            phost->Control.pipe_size);           
       
+USBH_UsrLog("Enum mps: %d, addr: %d", phost->Control.pipe_size, phost->device.address);
     }
     break;
     
@@ -645,8 +700,10 @@ static USBH_StatusTypeDef USBH_HandleEnum (USBH_HandleTypeDef *phost)
     /* Get FULL Device Desc  */
     if ( USBH_Get_DevDesc(phost, USB_DEVICE_DESC_SIZE)== USBH_OK)
     {
-      USBH_UsrLog("PID: %xh", phost->device.DevDesc.idProduct );  
-      USBH_UsrLog("VID: %xh", phost->device.DevDesc.idVendor );  
+USBH_UsrLog("PID  : %xh", phost->device.DevDesc.idProduct );
+USBH_UsrLog("VID  : %xh", phost->device.DevDesc.idVendor );
+//USBH_UsrLog("PROTO: %xh", phost->device.DevDesc.bDeviceProtocol );
+//USBH_UsrLog("CLASS: %xh", phost->device.DevDesc.bDeviceClass );
       
       phost->EnumState = ENUM_SET_ADDR;
        
@@ -655,10 +712,10 @@ static USBH_StatusTypeDef USBH_HandleEnum (USBH_HandleTypeDef *phost)
    
   case ENUM_SET_ADDR: 
     /* set address */
-    if ( USBH_SetAddress(phost, USBH_DEVICE_ADDRESS) == USBH_OK)
+    if ( USBH_SetAddress(phost, phost->address) == USBH_OK)
     {
       USBH_Delay(2);
-      phost->device.address = USBH_DEVICE_ADDRESS;
+      phost->device.address = phost->address;
       
       /* user callback for device address assigned */
       USBH_UsrLog("Address (#%d) assigned.", phost->device.address);
@@ -828,6 +885,7 @@ USBH_StatusTypeDef  USBH_LL_Connect  (USBH_HandleTypeDef *phost)
   if(phost->gState == HOST_IDLE )
   {
     phost->device.is_connected = 1;
+    phost->gState = HOST_IDLE ;
     
     if(phost->pUser != NULL)
     {    
@@ -836,6 +894,7 @@ USBH_StatusTypeDef  USBH_LL_Connect  (USBH_HandleTypeDef *phost)
   } 
   else if(phost->gState == HOST_DEV_WAIT_FOR_ATTACHMENT )
   {
+	USBH_Delay(100);
     phost->gState = HOST_DEV_ATTACHED ;
   }
 #if (USBH_USE_OS == 1)
@@ -853,29 +912,39 @@ USBH_StatusTypeDef  USBH_LL_Connect  (USBH_HandleTypeDef *phost)
   */
 USBH_StatusTypeDef  USBH_LL_Disconnect  (USBH_HandleTypeDef *phost)
 {
+USBH_UsrLog("\rUSBH_LL_Disconnect [%d]", phost->address);
+
+	// MORI - Always select the root device, mainly if its a hub
+	USBH_HandleTypeDef *pphost = &hUSBHost[0];
+	HCD_HandleTypeDef *phHCD   = &hhcd;
+
+	phHCD->pData = pphost;
+	pphost->pData = phHCD;
+	//////////////////////////////////////////////
   /*Stop Host */ 
-  USBH_LL_Stop(phost);  
+  USBH_LL_Stop(pphost);  
   
   /* FRee Control Pipes */
-  USBH_FreePipe  (phost, phost->Control.pipe_in);
-  USBH_FreePipe  (phost, phost->Control.pipe_out);  
+  USBH_FreePipe  (pphost, pphost->Control.pipe_in);
+  USBH_FreePipe  (pphost, pphost->Control.pipe_out);  
    
-  phost->device.is_connected = 0; 
+  pphost->device.is_connected = 0; 
    
-  if(phost->pUser != NULL)
+  if(pphost->pUser != NULL)
   {    
-    phost->pUser(phost, HOST_USER_DISCONNECTION);
+    pphost->pUser(pphost, HOST_USER_DISCONNECTION);
   }
-  USBH_UsrLog("USB Device disconnected"); 
   
   /* Start the low level driver  */
-  USBH_LL_Start(phost);
+  USBH_LL_Start(pphost);
   
-  phost->gState = HOST_DEV_DISCONNECTED;
+  pphost->gState = HOST_DEV_DISCONNECTED;
   
 #if (USBH_USE_OS == 1)
   osMessagePut ( phost->os_event, USBH_PORT_EVENT, 0);
 #endif 
+
+  USBH_UsrLog("USBH_LL_Disconnect OK");
   
   return USBH_OK;
 }

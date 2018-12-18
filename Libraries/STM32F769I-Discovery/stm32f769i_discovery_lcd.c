@@ -298,7 +298,7 @@ uint8_t BSP_LCD_InitEx(LCD_OrientationTypeDef orientation)
 #if defined(USE_LCD_HDMI)   
   if(read_id == ADV7533_ID)
   {
-    return BSP_LCD_HDMIInitEx(HDMI_FORMAT_720_576); 
+    return BSP_LCD_HDMIInitEx(HDMI_FORMAT_720_480);
   }  
   else if(read_id != LCD_DSI_ID)
   {
@@ -644,8 +644,8 @@ uint8_t BSP_LCD_HDMIInitEx(uint8_t format)
 
   /* background value */
   hltdc_discovery.Init.Backcolor.Blue = 0x00;
-  hltdc_discovery.Init.Backcolor.Green = 0xFF;
-  hltdc_discovery.Init.Backcolor.Red = 0xFF;
+  hltdc_discovery.Init.Backcolor.Green = 0x00;
+  hltdc_discovery.Init.Backcolor.Red = 0x00;
 
   /* Polarity */
   hltdc_discovery.Init.HSPolarity = LTDC_HSPOLARITY_AL;

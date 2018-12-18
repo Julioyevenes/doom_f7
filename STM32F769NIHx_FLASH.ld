@@ -44,8 +44,9 @@ __heap_limit = 0xC0FA0000;
 /* Specify the memory areas */
 MEMORY
 {
-FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 2048K
-RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 512K
+FLASH (rx)      : ORIGIN = 0x08080000, LENGTH = 2048K
+RAM_ISR (xrw)   : ORIGIN = 0x20000000, LENGTH = 512
+RAM (xrw)      : ORIGIN = 0x20000200, LENGTH = 512K - 512
 SDRAM (xrw) : ORIGIN = 0xC0177000, LENGTH = 14848K /* first 1536K is used as LCD frame buffer */
 }
 
@@ -56,9 +57,19 @@ SECTIONS
   .isr_vector :
   {
     . = ALIGN(4);
+    _isr_vector_flash_start = .;
     KEEP(*(.isr_vector)) /* Startup code */
+    _isr_vector_flash_end = .;
     . = ALIGN(4);
   } >FLASH
+  
+  ._isr_vector_ram (NOLOAD) :
+  {
+    . = ALIGN(4);
+    _isr_vector_ram_start = .;
+    KEEP(*(._isr_vector_ram)) /* Startup code */
+    . = ALIGN(4);
+  }>RAM_ISR
 
   /* The program code and other data goes into FLASH */
   .text :

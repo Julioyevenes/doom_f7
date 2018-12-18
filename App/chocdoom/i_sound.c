@@ -113,32 +113,25 @@ static music_module_t *music_modules[] =
 #include "z_zone.h"
 #include "stm32f769i_discovery_audio.h"
 
+typedef struct _ExpandedSoundType
+{
+	uint32_t *lump;
+	uint32_t len;
+	uint32_t pos;
+} ExpandedSoundType;
+
+#define NUM_CHANNELS 8
 #define AUDIO_BUFFER_SIZE 1024
 
 uint8_t audio_buffer[AUDIO_BUFFER_SIZE] = {0};
 
-static uint32_t expanded_sound_len;
-static uint32_t expanded_sound_pos;
+static ExpandedSoundType expanded_sound[NUM_CHANNELS];
 
 static boolean s_initialized = false;
-volatile boolean s_playing = false;
 static boolean sfx_prefix;
 
 static uint8_t *current_sound_lump = NULL;
-static uint32_t *expanded_sound_lump = NULL;
-static int current_sound_handle = 0;
 static int current_sound_lump_num = -1;
-
-static inline mem_cpy(void *dst, const void *src, size_t sz)
-{
-   while(sz)
-   {
-      *(uint8_t*)dst = *(uint8_t*)src;
-      src++;
-      dst++;
-      sz--;
-   }
-}
 
 void U8M_to_S16S_BuffConv(uint8_t *inbuff, uint16_t inbuffSize, uint32_t *outbuff)
 {
@@ -156,45 +149,86 @@ void U8M_to_S16S_BuffConv(uint8_t *inbuff, uint16_t inbuffSize, uint32_t *outbuf
 	}
 }
 
+void MixAudio(uint8_t *dst, const uint8_t *src, uint32_t len)
+{
+	int16_t src1, src2;
+	int dst_sample;
+	const int max_audioval = ((1<<(16-1))-1);
+	const int min_audioval = -(1<<(16-1));
+
+	len /= 2;
+	while ( len-- )
+	{
+		src1 = ((src[1])<<8|src[0]);
+		src2 = ((dst[1])<<8|dst[0]);
+		src += 2;
+		dst_sample = (src1 + src2) / 2;
+		if ( dst_sample > max_audioval )
+		{
+			dst_sample = max_audioval;
+		}
+		else if ( dst_sample < min_audioval )
+		{
+			dst_sample = min_audioval;
+		}
+		dst[0] = dst_sample&0xFF;
+		dst_sample >>= 8;
+		dst[1] = dst_sample&0xFF;
+		dst += 2;
+	}
+}
+
 void BSP_AUDIO_OUT_TransferComplete_CallBack(void)
 {
-	if(expanded_sound_pos < expanded_sound_len)
-	{
-		mem_cpy( &audio_buffer[AUDIO_BUFFER_SIZE / 2],
-				expanded_sound_lump + \
-				(expanded_sound_pos / 4),
-				AUDIO_BUFFER_SIZE / 2 );
+	uint8_t i, channels_playing = 0;
 
-		expanded_sound_pos += AUDIO_BUFFER_SIZE / 2;
+	for(i = 0 ; i < NUM_CHANNELS ; i++)
+	{
+		if(expanded_sound[i].pos < expanded_sound[i].len)
+		{
+			MixAudio( &audio_buffer[AUDIO_BUFFER_SIZE / 2],
+				  expanded_sound[i].lump + \
+				  (expanded_sound[i].pos / 4),
+				  AUDIO_BUFFER_SIZE / 2 );
+
+			expanded_sound[i].pos += AUDIO_BUFFER_SIZE / 2;
+
+			channels_playing++;
+		}
 	}
-	else
+
+	if(channels_playing == 0)
 	{
 		memset(	&audio_buffer[AUDIO_BUFFER_SIZE / 2],
-				0,
-				AUDIO_BUFFER_SIZE / 2 );
-
-		s_playing = false;
+			0,
+			AUDIO_BUFFER_SIZE / 2 );
 	}
 }
 
 void BSP_AUDIO_OUT_HalfTransfer_CallBack(void)
 {
-	if(expanded_sound_pos < expanded_sound_len)
-	{
-		mem_cpy( &audio_buffer[0],
-				expanded_sound_lump + \
-				(expanded_sound_pos / 4),
-				AUDIO_BUFFER_SIZE / 2 );
+	uint8_t i, channels_playing = 0;
 
-		expanded_sound_pos += AUDIO_BUFFER_SIZE / 2;
+	for(i = 0 ; i < NUM_CHANNELS ; i++)
+	{
+		if(expanded_sound[i].pos < expanded_sound[i].len)
+		{
+			MixAudio( &audio_buffer[0],
+				  expanded_sound[i].lump + \
+				  (expanded_sound[i].pos / 4),
+				  AUDIO_BUFFER_SIZE / 2 );
+
+			expanded_sound[i].pos += AUDIO_BUFFER_SIZE / 2;
+
+			channels_playing++;
+		}
 	}
-	else
+
+	if(channels_playing == 0)
 	{
 		memset(	&audio_buffer[0],
-				0,
-				AUDIO_BUFFER_SIZE / 2 );
-
-		s_playing = false;
+			0,
+			AUDIO_BUFFER_SIZE / 2 );
 	}
 }
 
@@ -459,18 +493,9 @@ int I_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep)
 		return -1;
 	}
 
-	if(s_playing)
+	if (channel > NUM_CHANNELS)
 	{
 		return -1;
-	}
-
-	if (current_sound_lump != NULL)
-	{
-		W_ReleaseLumpNum(current_sound_lump_num);
-		current_sound_lump = NULL;
-
-		free(expanded_sound_lump);
-		expanded_sound_lump = NULL;
 	}
 
 	current_sound_lump_num = sfxinfo->lumpnum;
@@ -493,15 +518,18 @@ int I_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep)
 	current_sound_lump += 16;
 	length -= 32;
 
-	expanded_sound_lump = (uint32_t *) malloc(length * 4);
+	expanded_sound[channel].lump = (uint32_t *) malloc(length * 4);
 
-	U8M_to_S16S_BuffConv(current_sound_lump, length, expanded_sound_lump);
+	U8M_to_S16S_BuffConv(current_sound_lump, length, expanded_sound[channel].lump);
 
-	expanded_sound_len = length * 4;
-	expanded_sound_pos = 0;
-	current_sound_handle = channel;
+	if (current_sound_lump != NULL)
+	{
+		W_ReleaseLumpNum(current_sound_lump_num);
+		current_sound_lump = NULL;
+	}
 
-	s_playing = true;
+	expanded_sound[channel].len = length * 4;
+	expanded_sound[channel].pos = 0;
 
 	return channel;
 }
@@ -519,10 +547,13 @@ void I_StopSound(int channel)
 		return;
 	}
 
-	expanded_sound_len = 0;
-	expanded_sound_pos = 0;
-
-	s_playing = false;
+	if (expanded_sound[channel].lump != NULL)
+	{
+		free(expanded_sound[channel].lump);
+		expanded_sound[channel].lump = NULL;
+		expanded_sound[channel].len = 0;
+		expanded_sound[channel].pos = 0;
+	}
 }
 
 boolean I_SoundIsPlaying(int channel)
@@ -539,15 +570,10 @@ boolean I_SoundIsPlaying(int channel)
 #endif
 	if (!s_initialized)
 	{
-    	return false;
+    		return false;
 	}
 
-	if (channel != current_sound_handle)
-	{
-    	return false;
-	}
-
-	return s_playing;
+	return expanded_sound[channel].lump != NULL;
 }
 
 void I_PrecacheSounds(sfxinfo_t *sounds, int num_sounds)
