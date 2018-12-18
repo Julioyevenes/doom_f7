@@ -1,0 +1,6 @@
+Preprocessor(defines): STM32F769xx     USE_USB_HS               DATA_IN_ExtSDRAM
+                                       USE_HAL_DRIVER
+                                       USE_STM32F769I_DISCO
+
+Exclusion(files): App/chocdoom/i_videohr.c
+                  App/chocdoom/i_videohr.h
