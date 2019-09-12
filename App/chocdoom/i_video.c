@@ -42,100 +42,6 @@ rcsid[] = "$Id: i_x.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 #include "stm32f769i_discovery_lcd.h"
 #include "usbh_hid.h"
 
-typedef struct _KeyPressed_TypeDef
-{
-	uint8_t ascii[6];
-} KeyPressed_TypeDef;
-
-static  const  int8_t  HID_KEYBRD_Key[] = {
-  '\0',  '`',  '1',  '2',  '3',  '4',  '5',  '6',
-  '7',  '8',  '9',  '0',  '-',  '=',  '\0', '\r',
-  '\t',  'q',  'w',  'e',  'r',  't',  'y',  'u',
-  'i',  'o',  'p',  '[',  ']',  '\\',
-  '\0',  'a',  's',  'd',  'f',  'g',  'h',  'j',
-  'k',  'l',  ';',  '\'', '\0', '\n',
-  '\0',  '\0', 'z',  'x',  'c',  'v',  'b',  'n',
-  'm',  ',',  '.',  '/',  '\0', '\0',
-  '\0',  '\0', '\0', ' ',  '\0', '\0', '\0', '\0',
-  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-  '\0',  '\0', '\0', '\0', '\0', '\r', '\0', '\0',
-  '\0', '\0', '\0', '\0', '\0', '\0',
-  '\0',  '\0', '7',  '4',  '1',
-  '\0',  '/',  '8',  '5',  '2',
-  '0',   '*',  '9',  '6',  '3',
-  '.',   '-',  '+',  '\0', '\n', '\0', '\0', '\0', '\0', '\0', '\0',
-  '\0',  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-  '\0', '\0', '\0', '\0'
-};
-
-static  const  int8_t  HID_KEYBRD_ShiftKey[] = {
-  '\0', '~',  '!',  '@',  '#',  '$',  '%',  '^',  '&',  '*',  '(',  ')',
-  '_',  '+',  '\0', '\0', '\0', 'Q',  'W',  'E',  'R',  'T',  'Y',  'U',
-  'I',  'O',  'P',  '{',  '}',  '|',  '\0', 'A',  'S',  'D',  'F',  'G',
-  'H',  'J',  'K',  'L',  ':',  '"',  '\0', '\n', '\0', '\0', 'Z',  'X',
-  'C',  'V',  'B',  'N',  'M',  '<',  '>',  '?',  '\0', '\0',  '\0', '\0',
-  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-  '\0', '\0', '\0', '\0', '\0', '\0', '\0',    '\0', '\0', '\0', '\0', '\0',
-  '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'
-};
-
-static  const  uint8_t  HID_KEYBRD_Codes[] = {
-  0,     0,    0,    0,   31,   50,   48,   33,
-  19,   34,   35,   36,   24,   37,   38,   39,       /* 0x00 - 0x0F */
-  52,    51,   25,   26,   17,   20,   32,   21,
-  23,   49,   18,   47,   22,   46,    2,    3,       /* 0x10 - 0x1F */
-  4,    5,    6,    7,    8,    9,   10,   11,
-  43,  110,   15,   16,   61,   12,   13,   27,       /* 0x20 - 0x2F */
-  28,   29,   42,   40,   41,    1,   53,   54,
-  55,   30,  112,  113,  114,  115,  116,  117,       /* 0x30 - 0x3F */
-  118,  119,  120,  121,  122,  123,  124,  125,
-  126,   75,   80,   85,   76,   81,   86,   89,       /* 0x40 - 0x4F */
-  79,   84,   83,   90,   95,  100,  105,  106,
-  108,   93,   98,  103,   92,   97,  102,   91,       /* 0x50 - 0x5F */
-  96,  101,   99,  104,   45,  129,    0,    0,
-  0,    0,    0,    0,    0,    0,    0,    0,       /* 0x60 - 0x6F */
-  0,    0,    0,    0,    0,    0,    0,    0,
-  0,    0,    0,    0,    0,    0,    0,    0,       /* 0x70 - 0x7F */
-  0,    0,    0,    0,    0,  107,    0,   56,
-  0,    0,    0,    0,    0,    0,    0,    0,       /* 0x80 - 0x8F */
-  0,    0,    0,    0,    0,    0,    0,    0,
-  0,    0,    0,    0,    0,    0,    0,    0,       /* 0x90 - 0x9F */
-  0,    0,    0,    0,    0,    0,    0,    0,
-  0,    0,    0,    0,    0,    0,    0,    0,       /* 0xA0 - 0xAF */
-  0,    0,    0,    0,    0,    0,    0,    0,
-  0,    0,    0,    0,    0,    0,    0,    0,       /* 0xB0 - 0xBF */
-  0,    0,    0,    0,    0,    0,    0,    0,
-  0,    0,    0,    0,    0,    0,    0,    0,       /* 0xC0 - 0xCF */
-  0,    0,    0,    0,    0,    0,    0,    0,
-  0,    0,    0,    0,    0,    0,    0,    0,       /* 0xD0 - 0xDF */
-  58,   44,   60,  127,   64,   57,   62,  128        /* 0xE0 - 0xE7 */
-};
-
-KeyPressed_TypeDef KeyASCII, lastKeyASCII;
-
-void USBH_HID_GetASCIICode_Multi(HID_KEYBD_Info_TypeDef *info)
-{
-  uint8_t i;
-
-  if((info->lshift == 1) || (info->rshift))
-  {
-	for(i = 0; i < 6 ; i++)
-	{
-  		KeyASCII.ascii[i] =  HID_KEYBRD_ShiftKey[HID_KEYBRD_Codes[info->keys[i]]];
-	}
-  }
-  else
-  {
-	for(i = 0; i < 6 ; i++)
-	{
-  		KeyASCII.ascii[i] =  HID_KEYBRD_Key[HID_KEYBRD_Codes[info->keys[i]]];
-	}
-  }
-}
-
 extern USBH_HandleTypeDef hUSBHost[5];
 extern uint8_t host_state;
 
@@ -188,6 +94,15 @@ typedef struct
 
 static uint16_t rgb565_palette[256];
 
+typedef enum
+{
+	PRESS_KEY,
+	RELEASE_KEY,
+	UPDATE_KEY
+} keystate_typedef;
+
+static keystate_typedef keystate;
+static uint8_t key, lastkeys[6];
 static bool last_lalt, last_lshift;
 
 void I_InitGraphics (void)
@@ -229,114 +144,128 @@ void I_GetEvent (void)
 
 	if(host_state == HOST_USER_CLASS_ACTIVE)
 	{
-		k_pinfo = USBH_HID_GetKeybdInfo(&hUSBHost[4]);
+		k_pinfo = USBH_HID_GetKeybdInfo(&hUSBHost[3]);
 		if(k_pinfo != NULL)
 		{
-			USBH_HID_GetASCIICode_Multi(k_pinfo);
-
-			for(i = 0; i < 6; i++)
+			for(keystate = 0; keystate < 3; keystate++)
 			{
-				if( ( lastKeyASCII.ascii[i] != KeyASCII.ascii[i] ) && ( lastKeyASCII.ascii[i] == 0 || KeyASCII.ascii[i] == 0 ) )
+				for(i = 0; i < 6; i++)
 				{
-					event.type = KeyASCII.ascii[i] ? ev_keydown : ev_keyup;
-					event.data1 = -1;
-					event.data2 = -1;
-					event.data3 = -1;
-					event.data4 = -1;
-
-					if(event.type != ev_keyup)
-						lastKeyASCII.ascii[i] = KeyASCII.ascii[i];
-
-					switch(lastKeyASCII.ascii[i])
+					switch(keystate)
 					{
-						case ' ':
-							event.data1 = KEY_FIRE;
+						case PRESS_KEY:
+							event.type = ev_keydown;
+							key = k_pinfo->keys[i];
 							break;
 
-						case '\n':
-							event.data1 = KEY_ENTER;
+						case RELEASE_KEY:
+							event.type = ev_keyup;
+							key = lastkeys[i];
+							if (key == k_pinfo->keys[i])
+								key = 0;
 							break;
 
-						case '\r':
-							event.data1 = KEY_ESCAPE;
-							break;
-
-						case '\t':
-							event.data1 = KEY_TAB;
-							break;
-
-						case 'p':
-							event.data1 = KEY_PAUSE;
-							break;
-
-						case '8':
-							event.data1 = KEY_F2;
-							break;
-
-						case '9':
-							event.data1 = KEY_F3;
-							break;
-
-						case 'w':
-							event.data1 = KEY_UPARROW;
-							break;
-
-						case 's':
-							event.data1 = KEY_DOWNARROW;
-							break;
-
-						case 'a':
-							event.data1 = KEY_STRAFE_L;
-							break;
-
-						case 'd':
-							event.data1 = KEY_STRAFE_R;
-							break;
-
-						case 'u':
-							event.data1 = KEY_PGUP;
-							break;
-
-						case 'j':
-							event.data1 = KEY_INS;
-							break;
-
-						case 'q':
-							event.data1 = '[';
-							break;
-
-						case 'e':
-							event.data1 = ']';
-							break;
-
-						case '1':
-							event.data1 = '1';
-							break;
-
-						case '2':
-							event.data1 = '2';
-							break;
-
-						case '3':
-							event.data1 = '3';
-							break;
-
-						case '4':
-							event.data1 = '4';
-							break;
-
-						case '5':
-							event.data1 = '5';
-							break;
-
-						case '6':
-							event.data1 = '6';
+						case UPDATE_KEY:
+							lastkeys[i] = k_pinfo->keys[i];
 							break;
 					}
 
-					D_PostEvent (&event);
+					if( (key != 0) && (keystate != UPDATE_KEY) )
+					{
+						event.data1 = -1;
+						event.data2 = -1;
+						event.data3 = -1;
+						event.data4 = -1;
 
-					lastKeyASCII.ascii[i] = KeyASCII.ascii[i];
+						switch(key)
+						{
+							case KB_KEY_SPACEBAR:
+								event.data1 = KEY_FIRE;
+								break;
+
+							case KB_KEY_ENTER:
+								event.data1 = KEY_ENTER;
+								break;
+
+							case KB_KEY_ESCAPE:
+								event.data1 = KEY_ESCAPE;
+								break;
+
+							case KB_KEY_TAB:
+								event.data1 = KEY_TAB;
+								break;
+
+							case KB_KEY_P:
+								event.data1 = KEY_PAUSE;
+								break;
+
+							case KB_KEY_F2:
+								event.data1 = KEY_F2;
+								break;
+
+							case KB_KEY_F3:
+								event.data1 = KEY_F3;
+								break;
+
+							case KB_KEY_W:
+								event.data1 = KEY_UPARROW;
+								break;
+
+							case KB_KEY_S:
+								event.data1 = KEY_DOWNARROW;
+								break;
+
+							case KB_KEY_A:
+								event.data1 = KEY_STRAFE_L;
+								break;
+
+							case KB_KEY_D:
+								event.data1 = KEY_STRAFE_R;
+								break;
+
+							case KB_KEY_U:
+								event.data1 = KEY_PGUP;
+								break;
+
+							case KB_KEY_J:
+								event.data1 = KEY_INS;
+								break;
+
+							case KB_KEY_Q:
+								event.data1 = '[';
+								break;
+
+							case KB_KEY_E:
+								event.data1 = ']';
+								break;
+
+							case KB_KEY_1_EXCLAMATION_MARK:
+								event.data1 = '1';
+								break;
+
+							case KB_KEY_2_AT:
+								event.data1 = '2';
+								break;
+
+							case KB_KEY_3_NUMBER_SIGN:
+								event.data1 = '3';
+								break;
+
+							case KB_KEY_4_DOLLAR:
+								event.data1 = '4';
+								break;
+
+							case KB_KEY_5_PERCENT:
+								event.data1 = '5';
+								break;
+
+							case KB_KEY_6_CARET:
+								event.data1 = '6';
+								break;
+						}
+
+						D_PostEvent (&event);
+					}
 				}
 			}
 
@@ -368,7 +297,7 @@ void I_GetEvent (void)
 
 		HID_MOUSE_Info_TypeDef *m_pinfo;
 
-		m_pinfo = USBH_HID_GetMouseInfo(&hUSBHost[3]);
+		m_pinfo = USBH_HID_GetMouseInfo(&hUSBHost[4]);
 		if(m_pinfo != NULL)
 		{
 			event.type = ev_mouse;

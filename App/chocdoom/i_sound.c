@@ -130,6 +130,8 @@ static ExpandedSoundType expanded_sound[NUM_CHANNELS];
 static boolean s_initialized = false;
 static boolean sfx_prefix;
 
+static uint8_t current_vol = 80;
+
 static uint8_t *current_sound_lump = NULL;
 static int current_sound_lump_num = -1;
 
@@ -370,7 +372,7 @@ void I_InitSound(boolean use_sfx_prefix)
 #endif
 	sfx_prefix = use_sfx_prefix;
 
-	if( BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_BOTH, 20, 11025) == 0 )
+	if( BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_BOTH, current_vol, 11025) == 0 )
 	{
 		BSP_AUDIO_OUT_SetAudioFrameSlot(CODEC_AUDIOFRAME_SLOT_02);
 
@@ -530,6 +532,13 @@ int I_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep)
 
 	expanded_sound[channel].len = length * 4;
 	expanded_sound[channel].pos = 0;
+
+	if(vol != current_vol)
+	{
+		BSP_AUDIO_OUT_SetVolume((vol*100)/255);
+
+		current_vol = vol;
+	}
 
 	return channel;
 }
