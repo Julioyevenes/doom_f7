@@ -85,8 +85,9 @@ void R_DrawColumn(void)
 
 void R_DrawColumnLow(void)
 {
-    int count;
+    int count, x;
     byte *dest;
+	byte *dest2;
     fixed_t frac, fracstep;
 
     count = dc_yh - dc_yl;
@@ -96,18 +97,21 @@ void R_DrawColumnLow(void)
 #ifdef RANGECHECK
     if ((unsigned) dc_x >= SCREENWIDTH || dc_yl < 0 || dc_yh >= SCREENHEIGHT)
         I_Error("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x);
-//      dccount++;
 #endif
 
-    dest = ylookup[dc_yl] + columnofs[dc_x];
+	x = dc_x << 1;
+
+    dest = ylookup[dc_yl] + columnofs[x];
+    dest2 = ylookup[dc_yl] + columnofs[x+1];
 
     fracstep = dc_iscale;
     frac = dc_texturemid + (dc_yl - centery) * fracstep;
 
     do
     {
-        *dest = dc_colormap[dc_source[(frac >> FRACBITS) & 127]];
+        *dest2 = *dest = dc_colormap[dc_source[(frac >> FRACBITS) & 127]];
         dest += SCREENWIDTH;
+		dest2 += SCREENWIDTH;
         frac += fracstep;
     }
     while (count--);
@@ -147,6 +151,45 @@ void R_DrawTLColumn(void)
                       dc_colormap[dc_source[(frac >> FRACBITS) & 127]]];
 
         dest += SCREENWIDTH;
+        frac += fracstep;
+    }
+    while (count--);
+}
+
+void R_DrawTLColumnLow(void)
+{
+    int count, x;
+    byte *dest;
+	byte *dest2;
+    fixed_t frac, fracstep;
+
+    if (!dc_yl)
+        dc_yl = 1;
+    if (dc_yh == viewheight - 1)
+        dc_yh = viewheight - 2;
+
+    count = dc_yh - dc_yl;
+    if (count < 0)
+        return;
+
+#ifdef RANGECHECK
+    if ((unsigned) dc_x >= SCREENWIDTH || dc_yl < 0 || dc_yh >= SCREENHEIGHT)
+        I_Error("R_DrawTLColumn: %i to %i at %i", dc_yl, dc_yh, dc_x);
+#endif
+
+	x = dc_x << 1;
+
+    dest = ylookup[dc_yl] + columnofs[x];
+    dest2 = ylookup[dc_yl] + columnofs[x+1];
+
+    fracstep = dc_iscale;
+    frac = dc_texturemid + (dc_yl - centery) * fracstep;
+
+    do
+    {
+        *dest2 = *dest = tinttable[((*dest) << 8) + dc_colormap[dc_source[(frac >> FRACBITS) & 127]]];
+        dest += SCREENWIDTH;
+		dest2 += SCREENWIDTH;
         frac += fracstep;
     }
     while (count--);
@@ -192,6 +235,40 @@ void R_DrawTranslatedColumn(void)
     while (count--);
 }
 
+void R_DrawTranslatedColumnLow(void)
+{
+    int count, x;
+    byte *dest;
+	byte *dest2;
+    fixed_t frac, fracstep;
+
+    count = dc_yh - dc_yl;
+    if (count < 0)
+        return;
+
+#ifdef RANGECHECK
+    if ((unsigned) dc_x >= SCREENWIDTH || dc_yl < 0 || dc_yh >= SCREENHEIGHT)
+        I_Error("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x);
+#endif
+
+	x = dc_x << 1;
+
+    dest = ylookup[dc_yl] + columnofs[x];
+    dest2 = ylookup[dc_yl] + columnofs[x+1];
+
+    fracstep = dc_iscale;
+    frac = dc_texturemid + (dc_yl - centery) * fracstep;
+
+    do
+    {
+        *dest2 = *dest = dc_colormap[dc_translation[dc_source[frac >> FRACBITS]]];
+        dest += SCREENWIDTH;
+		dest2 += SCREENWIDTH;
+        frac += fracstep;
+    }
+    while (count--);
+}
+
 void R_DrawTranslatedTLColumn(void)
 {
     int count;
@@ -219,6 +296,40 @@ void R_DrawTranslatedTLColumn(void)
                           dc_colormap[dc_translation
                                       [dc_source[frac >> FRACBITS]]]];
         dest += SCREENWIDTH;
+        frac += fracstep;
+    }
+    while (count--);
+}
+
+void R_DrawTranslatedTLColumnLow(void)
+{
+    int count, x;
+    byte *dest;
+	byte *dest2;
+    fixed_t frac, fracstep;
+
+    count = dc_yh - dc_yl;
+    if (count < 0)
+        return;
+
+#ifdef RANGECHECK
+    if ((unsigned) dc_x >= SCREENWIDTH || dc_yl < 0 || dc_yh >= SCREENHEIGHT)
+        I_Error("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x);
+#endif
+
+	x = dc_x << 1;
+
+    dest = ylookup[dc_yl] + columnofs[x];
+    dest2 = ylookup[dc_yl] + columnofs[x+1];
+
+    fracstep = dc_iscale;
+    frac = dc_texturemid + (dc_yl - centery) * fracstep;
+
+    do
+    {
+        *dest2 = *dest = tinttable[((*dest) << 8) + dc_colormap[dc_translation[dc_source[frac >> FRACBITS]]]];
+        dest += SCREENWIDTH;
+		dest2 += SCREENWIDTH;
         frac += fracstep;
     }
     while (count--);
@@ -320,12 +431,18 @@ void R_DrawSpanLow(void)
     xfrac = ds_xfrac;
     yfrac = ds_yfrac;
 
+	count = ds_x2 - ds_x1;
+
+	ds_x1 <<= 1;
+    ds_x2 <<= 1;
+
     dest = ylookup[ds_y] + columnofs[ds_x1];
-    count = ds_x2 - ds_x1;
+
     do
     {
         spot = ((yfrac >> (16 - 6)) & (63 * 64)) + ((xfrac >> 16) & 63);
         *dest++ = ds_colormap[ds_source[spot]];
+		*dest++ = ds_colormap[ds_source[spot]];
         xfrac += ds_xstep;
         yfrac += ds_ystep;
     }

@@ -649,7 +649,7 @@ void MN_LoadSlotText(void)
     {
         filename = SV_Filename(i);
 //        fp = fopen(filename, "rb+");
-	free(filename);
+//	free(filename);
 
 //        if (!fp)
 		if(f_open (&fp, filename, FA_READ) != FR_OK)
@@ -663,6 +663,7 @@ void MN_LoadSlotText(void)
 //        fclose(fp);
         f_close (&fp);
         SlotStatus[i] = 1;
+        free(filename);
     }
     slottextloaded = true;
 }

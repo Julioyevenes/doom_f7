@@ -581,8 +581,8 @@ void R_ExecuteSetViewSize(void)
     else
     {
         colfunc = basecolfunc = R_DrawColumnLow;
-        tlcolfunc = R_DrawTLColumn;
-        transcolfunc = R_DrawTranslatedColumn;
+        tlcolfunc = R_DrawTLColumnLow;
+        transcolfunc = R_DrawTranslatedColumnLow;
         spanfunc = R_DrawSpanLow;
     }
 
@@ -652,7 +652,7 @@ void R_ExecuteSetViewSize(void)
 ==============
 */
 
-int detailLevel;
+int detailLevel = 1;
 int screenblocks = 10;
 
 void R_Init(void)

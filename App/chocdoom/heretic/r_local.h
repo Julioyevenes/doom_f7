@@ -453,6 +453,7 @@ void R_DrawTLColumnLow(void);
 void R_DrawTranslatedColumn(void);
 void R_DrawTranslatedTLColumn(void);
 void R_DrawTranslatedColumnLow(void);
+void R_DrawTranslatedTLColumnLow(void);
 
 extern int ds_y;
 extern int ds_x1;

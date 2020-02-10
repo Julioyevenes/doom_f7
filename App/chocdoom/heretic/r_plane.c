@@ -378,7 +378,8 @@ void R_DrawPlanes(void)
     byte *tempSource;
 
     byte *dest;
-    int count;
+    byte *dest2;
+    int count, k;
     fixed_t frac, fracstep;
 
     extern byte *ylookup[MAXHEIGHT];
@@ -428,14 +429,18 @@ void R_DrawPlanes(void)
                                 dc_x);
 #endif
 
-                    dest = ylookup[dc_yl] + columnofs[dc_x];
+                	k = dc_x << 1;
+
+                    dest = ylookup[dc_yl] + columnofs[k];
+                    dest2 = ylookup[dc_yl] + columnofs[k+1];
 
                     fracstep = 1;
                     frac = (dc_texturemid >> FRACBITS) + (dc_yl - centery);
                     do
                     {
-                        *dest = dc_source[frac];
+                    	*dest2 = *dest = dc_source[frac];
                         dest += SCREENWIDTH;
+                        dest2 += SCREENWIDTH;
                         frac += fracstep;
                     }
                     while (count--);

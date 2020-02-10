@@ -28,7 +28,7 @@
 #include "ff.h"
 
 //static FILE *SaveGameFP;
-FIL SaveGameFP;
+static FIL SaveGameFP;
 
 int vanilla_savegame_limit = 1;
 
