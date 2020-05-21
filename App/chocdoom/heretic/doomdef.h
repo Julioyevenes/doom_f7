@@ -26,6 +26,26 @@
 #define HERETIC_VERSION 130
 #define HERETIC_VERSION_TEXT "v1.3"
 
+// port wrappers
+#define joybautomap 0
+#define TXT_BGColor(...) 0
+#define TXT_FGColor(...) 0
+#define TXT_GotoXY(...) 0
+#define TXT_Puts(...) 0
+#define TXT_UpdateScreen() 0
+#define TXT_PutChar(...) 0
+#define TXT_Init() 0
+#define TXT_GetScreenData() 0
+#define TXT_Shutdown() 0
+#define TXT_GetChar() 0
+#define TXT_Init() 0
+#define M_BindIntVariable M_BindVariable
+#define M_BindStringVariable M_BindVariable
+#define I_SetOPLDriverVer(...) 0
+#define D_NonVanillaRecord(...) 0
+#define D_NonVanillaPlayback(...) 0
+#define DEH_Checksum(...) 0
+
 // if rangecheck is undefined, most parameter validation debugging code
 // will not be compiled
 //#define RANGECHECK

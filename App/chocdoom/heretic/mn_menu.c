@@ -22,7 +22,6 @@
 #include "deh_str.h"
 #include "doomdef.h"
 #include "doomkeys.h"
-//#include "i_input.h"
 #include "i_system.h"
 #include "i_swap.h"
 #include "m_controls.h"
@@ -31,8 +30,6 @@
 #include "r_local.h"
 #include "s_sound.h"
 #include "v_video.h"
-
-#include "ff.h"
 
 // Macros
 
@@ -638,32 +635,25 @@ static void DrawSaveMenu(void)
 
 void MN_LoadSlotText(void)
 {
-//    FILE *fp;
-	FIL fp;
-	unsigned long count;
-
+    FILE *fp;
     int i;
     char *filename;
 
     for (i = 0; i < 6; i++)
     {
         filename = SV_Filename(i);
-//        fp = fopen(filename, "rb+");
-//	free(filename);
+        fp = fopen(filename, "rb");
+	free(filename);
 
-//        if (!fp)
-		if(f_open (&fp, filename, FA_READ) != FR_OK)
+        if (!fp)
         {
             SlotText[i][0] = 0; // empty the string
             SlotStatus[i] = 0;
             continue;
         }
-//        fread(&SlotText[i], SLOTTEXTLEN, 1, fp);
-        f_read (&fp, &SlotText[i], SLOTTEXTLEN, &count);
-//        fclose(fp);
-        f_close (&fp);
+        fread(&SlotText[i], SLOTTEXTLEN, 1, fp);
+        fclose(fp);
         SlotStatus[i] = 1;
-        free(filename);
     }
     slottextloaded = true;
 }
@@ -857,15 +847,7 @@ static boolean SCSaveGame(int option)
 
     if (!FileMenuKeySteal)
     {
-        int x, y;
-
         FileMenuKeySteal = true;
-        // We need to activate the text input interface to type the save
-        // game name:
-        x = SaveMenu.x + 1;
-        y = SaveMenu.y + 1 + option * ITEM_HEIGHT;
-//        I_StartTextInput(x, y, x + 190, y + ITEM_HEIGHT - 2);
-
         M_StringCopy(oldSlotText, SlotText[option], sizeof(oldSlotText));
         ptr = SlotText[option];
         while (*ptr)
@@ -883,7 +865,6 @@ static boolean SCSaveGame(int option)
     {
         G_SaveGame(option, SlotText[option]);
         FileMenuKeySteal = false;
-//        I_StopTextInput();
         MN_DeactivateMenu();
     }
     BorderNeedRefresh = true;
@@ -1522,12 +1503,7 @@ boolean MN_Responder(event_t * event)
         return (false);
     }
     else
-    {
-        // Editing file names
-        // When typing a savegame name, we use the fully shifted and
-        // translated input value from event->data3.
-        charTyped = event->data3;
-
+    {                           // Editing file names
         textBuffer = &SlotText[currentSlot][slotptr];
         if (key == KEY_BACKSPACE)
         {
@@ -1629,10 +1605,6 @@ void MN_DeactivateMenu(void)
         CurrentMenu->oldItPos = CurrentItPos;
     }
     MenuActive = false;
-    if (FileMenuKeySteal)
-    {
-//        I_StopTextInput();
-    }
     if (!netgame)
     {
         paused = false;

@@ -103,7 +103,7 @@ typedef enum
 
 static keystate_typedef keystate;
 static uint8_t key, lastkeys[6];
-static bool last_lalt, last_lshift;
+static bool last_lalt, last_lshift, last_lctrl;
 
 void I_InitGraphics (void)
 {
@@ -287,6 +287,18 @@ void I_GetEvent (void)
 
 				event.type = last_lshift ? ev_keydown : ev_keyup;
 				event.data1 = KEY_RSHIFT;
+				event.data2 = -1;
+				event.data3 = -1;
+				event.data4 = -1;
+
+				D_PostEvent (&event);
+			}
+			else if(last_lctrl != k_pinfo->lctrl)
+			{
+				last_lctrl = k_pinfo->lctrl;
+
+				event.type = last_lctrl ? ev_keydown : ev_keyup;
+				event.data1 = '/';
 				event.data2 = -1;
 				event.data3 = -1;
 				event.data4 = -1;

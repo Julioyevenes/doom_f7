@@ -25,10 +25,7 @@
 #include "p_local.h"
 #include "v_video.h"
 
-#include "ff.h"
-
-//static FILE *SaveGameFP;
-static FIL SaveGameFP;
+static FILE *SaveGameFP;
 
 int vanilla_savegame_limit = 1;
 
@@ -63,14 +60,12 @@ char *SV_Filename(int slot)
 
 void SV_Open(char *fileName)
 {
-//    SaveGameFP = fopen(fileName, "wb");
-	f_open (&SaveGameFP, fileName, FA_CREATE_ALWAYS | FA_WRITE);
+    SaveGameFP = fopen(fileName, "wb");
 }
 
 void SV_OpenRead(char *filename)
 {
-//    SaveGameFP = fopen(filename, "rb");
-	f_open (&SaveGameFP, filename, FA_READ);
+    SaveGameFP = fopen(filename, "rb");
 }
 
 //==========================================================================
@@ -85,13 +80,12 @@ void SV_Close(char *fileName)
 
     // Enforce the same savegame size limit as in Vanilla Heretic
 
-//    if (vanilla_savegame_limit && ftell(SaveGameFP) > SAVEGAMESIZE)
-//    {
-//        I_Error("Savegame buffer overrun");
-//    }
+    if (vanilla_savegame_limit && ftell(SaveGameFP) > SAVEGAMESIZE)
+    {
+        I_Error("Savegame buffer overrun");
+    }
 
-//    fclose(SaveGameFP);
-    f_close (&SaveGameFP);
+    fclose(SaveGameFP);
 }
 
 //==========================================================================
@@ -102,9 +96,7 @@ void SV_Close(char *fileName)
 
 void SV_Write(void *buffer, int size)
 {
-//    fwrite(buffer, size, 1, SaveGameFP);
-	unsigned long count;
-	f_write (&SaveGameFP, buffer, size, &count);
+    fwrite(buffer, size, 1, SaveGameFP);
 }
 
 void SV_WriteByte(byte val)
@@ -139,9 +131,7 @@ void SV_WritePtr(void *ptr)
 
 void SV_Read(void *buffer, int size)
 {
-//    fread(buffer, size, 1, SaveGameFP);
-	unsigned long count;
-	f_read (&SaveGameFP, buffer, size, &count);
+    fread(buffer, size, 1, SaveGameFP);
 }
 
 byte SV_ReadByte(void)

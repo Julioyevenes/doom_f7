@@ -22,7 +22,6 @@
 #include "doomdef.h"
 #include "doomkeys.h"
 #include "deh_str.h"
-//#include "i_input.h"
 #include "i_timer.h"
 #include "i_system.h"
 #include "m_argv.h"
@@ -1461,12 +1460,11 @@ void G_DoWorldDone(void)
 //
 //---------------------------------------------------------------------------
 
-//static char *savename = NULL;
-static char savename[256] = {0};
+static char *savename = NULL;
 
 void G_LoadGame(char *name)
 {
-    M_StringCopy(savename, name, sizeof(savename));
+    savename = M_StringDuplicate(name);
     gameaction = ga_loadgame;
 }
 
@@ -1491,8 +1489,8 @@ void G_DoLoadGame(void)
 
     SV_OpenRead(savename);
 
-//    free(savename);
-//    savename = NULL;
+    free(savename);
+    savename = NULL;
 
     // Skip the description field
     SV_Read(savestr, SAVESTRINGSIZE);
@@ -1792,8 +1790,8 @@ void G_RecordDemo(skill_t skill, int numplayers, int episode, int map,
     // Record or playback a demo with high resolution turning.
     //
 
-//    longtics = D_NonVanillaRecord(M_ParmExists("-longtics"),
-//                                  "vvHeretic longtics demo");
+    longtics = D_NonVanillaRecord(M_ParmExists("-longtics"),
+                                  "vvHeretic longtics demo");
 
     // If not recording a longtics demo, record in low res
 
@@ -1839,18 +1837,18 @@ void G_RecordDemo(skill_t skill, int numplayers, int episode, int map,
     //   0x02 = -nomonsters
 
     *demo_p = 1; // assume player one exists
-//    if (D_NonVanillaRecord(respawnparm, "vvHeretic -respawn header flag"))
-//    {
-//        *demo_p |= DEMOHEADER_RESPAWN;
-//    }
+    if (D_NonVanillaRecord(respawnparm, "vvHeretic -respawn header flag"))
+    {
+        *demo_p |= DEMOHEADER_RESPAWN;
+    }
     if (longtics)
     {
         *demo_p |= DEMOHEADER_LONGTICS;
     }
-//    if (D_NonVanillaRecord(nomonsters, "vvHeretic -nomonsters header flag"))
-//    {
-//        *demo_p |= DEMOHEADER_NOMONSTERS;
-//    }
+    if (D_NonVanillaRecord(nomonsters, "vvHeretic -nomonsters header flag"))
+    {
+        *demo_p |= DEMOHEADER_NOMONSTERS;
+    }
     demo_p++;
 
     for (i = 1; i < MAXPLAYERS; i++)
@@ -1891,21 +1889,21 @@ void G_DoPlayDemo(void)
 
     // vvHeretic allows extra options to be stored in the upper bits of
     // the player 1 present byte. However, this is a non-vanilla extension.
-//    if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_LONGTICS) != 0,
-//                             lumpnum, "vvHeretic longtics demo"))
-//    {
-//        longtics = true;
-//    }
-//    if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_RESPAWN) != 0,
-//                             lumpnum, "vvHeretic -respawn header flag"))
-//    {
-//        respawnparm = true;
-//    }
-//    if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_NOMONSTERS) != 0,
-//                             lumpnum, "vvHeretic -nomonsters header flag"))
-//    {
-//        nomonsters = true;
-//    }
+    if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_LONGTICS) != 0,
+                             lumpnum, "vvHeretic longtics demo"))
+    {
+        longtics = true;
+    }
+    if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_RESPAWN) != 0,
+                             lumpnum, "vvHeretic -respawn header flag"))
+    {
+        respawnparm = true;
+    }
+    if (D_NonVanillaPlayback((*demo_p & DEMOHEADER_NOMONSTERS) != 0,
+                             lumpnum, "vvHeretic -nomonsters header flag"))
+    {
+        nomonsters = true;
+    }
 
     for (i = 0; i < MAXPLAYERS; i++)
         playeringame[i] = (*demo_p++) != 0;

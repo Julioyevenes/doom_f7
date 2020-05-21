@@ -47,6 +47,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include <string.h>
 #include "ff_gen_drv.h"
+#include "cmsis_os.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -129,7 +130,9 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
   DRESULT res = RES_ERROR;
   uint32_t timeout = 100000;
 
-  __disable_irq();
+  taskENTER_CRITICAL();
+
+  BSP_LED_On(LED_GREEN); // Debug led for sdcard activity
 
   if(BSP_SD_ReadBlocks((uint32_t*)buff, 
                        (uint32_t) (sector), 
@@ -139,15 +142,19 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
     {
       if (timeout-- == 0)
       {
-    	  __enable_irq();
+    	  BSP_LED_Off(LED_GREEN); // Debug led for sdcard activity
+
+    	  taskEXIT_CRITICAL();
 
     	  return RES_ERROR;
       }
     }
     res = RES_OK;
   }
+
+  BSP_LED_Off(LED_GREEN); // Debug led for sdcard activity
   
-  __enable_irq();
+  taskEXIT_CRITICAL();
 
   return res;
 }
@@ -166,7 +173,9 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
   DRESULT res = RES_ERROR;
   uint32_t timeout = 100000;
 
-  __disable_irq();
+  taskENTER_CRITICAL();
+
+  BSP_LED_On(LED_GREEN); // Debug led for sdcard activity
 
   if(BSP_SD_WriteBlocks((uint32_t*)buff, 
                         (uint32_t)(sector), 
@@ -176,15 +185,19 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
     {
       if (timeout-- == 0)
       {
-    	  __enable_irq();
+    	  BSP_LED_Off(LED_GREEN); // Debug led for sdcard activity
+
+    	  taskEXIT_CRITICAL();
 
     	  return RES_ERROR;
       }
     }    
     res = RES_OK;
   }
+
+  BSP_LED_Off(LED_GREEN); // Debug led for sdcard activity
   
-  __enable_irq();
+  taskEXIT_CRITICAL();
 
   return res;
 }

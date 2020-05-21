@@ -19,6 +19,8 @@
 
 #include <stdlib.h>
 
+#include "doomfeatures.h"
+
 #include "i_system.h"
 #include "i_timer.h"
 #include "i_video.h"
@@ -174,7 +176,7 @@ static void InitConnectData(net_connect_data_t *connect_data)
     // Read checksums of our WAD directory and dehacked information
 
     W_Checksum(connect_data->wad_sha1sum);
-//    DEH_Checksum(connect_data->deh_sha1sum);
+    DEH_Checksum(connect_data->deh_sha1sum);
 
     connect_data->is_freedoom = 0;
 }

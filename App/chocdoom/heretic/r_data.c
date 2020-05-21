@@ -85,17 +85,6 @@ will have new column_ts generated.
 ==============================================================================
 */
 
-static inline mem_cpy(void *dst, const void *src, size_t sz)
-{
-   while(sz)
-   {
-      *(uint8_t*)dst = *(uint8_t*)src;
-      src++;
-      dst++;
-      sz--;
-   }
-}
-
 /*
 ===================
 =
@@ -125,7 +114,7 @@ void R_DrawColumnInCache(column_t * patch, byte * cache, int originy,
         if (position + count > cacheheight)
             count = cacheheight - position;
         if (count > 0)
-            mem_cpy(cache + position, source, count);
+            memcpy(cache + position, source, count);
 
         patch = (column_t *) ((byte *) patch + patch->length + 4);
     }
@@ -411,7 +400,7 @@ void R_InitTextures(void)
         texture->width = SHORT(mtexture->width);
         texture->height = SHORT(mtexture->height);
         texture->patchcount = SHORT(mtexture->patchcount);
-        mem_cpy(texture->name, mtexture->name, sizeof(texture->name));
+        memcpy(texture->name, mtexture->name, sizeof(texture->name));
         mpatch = &mtexture->patches[0];
         patch = &texture->patches[0];
         for (j = 0; j < texture->patchcount; j++, mpatch++, patch++)
@@ -591,7 +580,7 @@ int R_FlatNumForName(char *name)
     if (i == -1)
     {
         namet[8] = 0;
-        mem_cpy(namet, name, 8);
+        memcpy(namet, name, 8);
         I_Error("R_FlatNumForName: %s not found", namet);
     }
     return i - firstflat;

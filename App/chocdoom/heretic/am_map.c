@@ -513,7 +513,7 @@ boolean AM_Responder(event_t * ev)
 
     key = ev->data1;
     rc = false;
-/*
+
     if (ev->type == ev_joystick && joybautomap >= 0
         && (ev->data1 & (1 << joybautomap)) != 0 && joywait < I_GetTime())
     {
@@ -531,7 +531,7 @@ boolean AM_Responder(event_t * ev)
             AM_Stop ();
         }
     }
-*/
+
     if (!automapactive)
     {
 

@@ -383,7 +383,7 @@ void R_DrawVisSprite(vissprite_t * vis, int x1, int x2)
     {
         if (vis->mobjflags & MF_TRANSLATION)
         {
-            colfunc = R_DrawTranslatedTLColumnLow;
+            colfunc = R_DrawTranslatedTLColumn;
             dc_translation = translationtables - 256 +
                 ((vis->mobjflags & MF_TRANSLATION) >> (MF_TRANSSHIFT - 8));
         }
@@ -395,7 +395,7 @@ void R_DrawVisSprite(vissprite_t * vis, int x1, int x2)
     else if (vis->mobjflags & MF_TRANSLATION)
     {
         // Draw using translated column function
-        colfunc = R_DrawTranslatedColumnLow;
+        colfunc = R_DrawTranslatedColumn;
         dc_translation = translationtables - 256 +
             ((vis->mobjflags & MF_TRANSLATION) >> (MF_TRANSSHIFT - 8));
     }

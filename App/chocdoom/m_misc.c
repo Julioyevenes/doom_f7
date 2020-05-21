@@ -247,7 +247,7 @@ int M_ReadFile(char *name, byte **buffer)
 
 	length = f_size (&file);
 	buf = Z_Malloc (length, PU_STATIC, NULL);
-	f_readn (&file, buf, length, &read);
+	f_read (&file, buf, length, &read);
 	f_close (&file);
 
 	*buffer = buf;
@@ -600,4 +600,24 @@ char *M_OEMToUTF8(const char *oem)
 }
 
 #endif
+
+//
+// Safe version of strdup() that checks the string was successfully
+// allocated.
+//
+
+char *M_StringDuplicate(const char *orig)
+{
+    char *result;
+
+    result = strdup(orig);
+
+    if (result == NULL)
+    {
+        I_Error("Failed to duplicate string (length %" PRIuPTR ")\n",
+                strlen(orig));
+    }
+
+    return result;
+}
 

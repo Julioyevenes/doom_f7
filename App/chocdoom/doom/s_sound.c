@@ -59,7 +59,7 @@
 
 #define S_STEREO_SWING (96 * FRACUNIT)
 
-#define NORM_PITCH 128
+/* #define NORM_PITCH 128 */
 #define NORM_PRIORITY 64
 #define NORM_SEP 128
 
@@ -73,7 +73,9 @@ typedef struct
 
     // handle of the sound being played
     int handle;
-    
+
+    int pitch;
+
 } channel_t;
 
 // The set of channels available
@@ -394,6 +396,7 @@ void S_StartSound(void *origin_p, int sfx_id)
     mobj_t *origin;
     int rc;
     int sep;
+    int pitch;
     int cnum;
     int volume;
 
@@ -409,9 +412,11 @@ void S_StartSound(void *origin_p, int sfx_id)
     sfx = &S_sfx[sfx_id];
 
     // Initialize sound parameters
+    pitch = NORM_PITCH;
     if (sfx->link)
     {
         volume += sfx->volume;
+        pitch = sfx->pitch;
 
         if (volume < 1)
         {
@@ -472,7 +477,8 @@ void S_StartSound(void *origin_p, int sfx_id)
         sfx->lumpnum = I_GetSfxLumpNum(sfx);
     }
 
-    channels[cnum].handle = I_StartSound(sfx, cnum, volume, sep);
+    channels[cnum].pitch = pitch;
+    channels[cnum].handle = I_StartSound(sfx, cnum, volume, sep, channels[cnum].pitch);
 }        
 
 //

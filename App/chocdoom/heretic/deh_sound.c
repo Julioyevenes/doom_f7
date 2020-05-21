@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "doomfeatures.h"
 #include "doomtype.h"
 #include "deh_defs.h"
 #include "deh_main.h"

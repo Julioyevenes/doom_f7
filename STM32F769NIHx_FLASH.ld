@@ -44,7 +44,7 @@ __heap_limit = 0xC0FA0000;
 /* Specify the memory areas */
 MEMORY
 {
-FLASH (rx)      : ORIGIN = 0x08080000, LENGTH = 2048K
+FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 2048K
 RAM_ISR (xrw)   : ORIGIN = 0x20000000, LENGTH = 512
 RAM (xrw)      : ORIGIN = 0x20000200, LENGTH = 512K - 512
 SDRAM (xrw) : ORIGIN = 0xC0177000, LENGTH = 14848K /* first 1536K is used as LCD frame buffer */

@@ -19,8 +19,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//#include "txt_main.h"
-//#include "txt_io.h"
+#include "doomfeatures.h"
+
+/* #include "txt_main.h" */
+/* #include "txt_io.h" */
 
 #include "net_client.h"
 
@@ -30,7 +32,6 @@
 #include "deh_main.h"
 #include "d_iwad.h"
 #include "i_endoom.h"
-//#include "i_input.h"
 #include "i_joystick.h"
 #include "i_sound.h"
 #include "i_system.h"
@@ -465,6 +466,15 @@ void wadprintf(void)
     {
         return;
     }
+    // haleyjd FIXME: convert to textscreen code?
+#ifdef __WATCOMC__
+    _settextposition(23, 2);
+    _setbkcolor(1);
+    _settextcolor(0);
+    _outtext(exrnwads);
+    _settextposition(24, 2);
+    _outtext(exrnwads2);
+#endif
 }
 
 boolean D_AddFile(char *file)
@@ -501,14 +511,14 @@ void hprintf(char *string)
 {
     if (using_graphical_startup)
     {
-//        TXT_BGColor(TXT_COLOR_CYAN, 0);
-//        TXT_FGColor(TXT_COLOR_BRIGHT_WHITE);
+        TXT_BGColor(TXT_COLOR_CYAN, 0);
+        TXT_FGColor(TXT_COLOR_BRIGHT_WHITE);
 
-//        TXT_GotoXY(STARTUP_WINDOW_X, startup_line);
+        TXT_GotoXY(STARTUP_WINDOW_X, startup_line);
         ++startup_line;
-//        TXT_Puts(string);
+        TXT_Puts(string);
 
-//        TXT_UpdateScreen();
+        TXT_UpdateScreen();
     }
 
     // haleyjd: shouldn't be WATCOMC-only
@@ -520,13 +530,13 @@ void drawstatus(void)
 {
     int i;
 
-//    TXT_GotoXY(1, 24);
-//    TXT_BGColor(TXT_COLOR_BLUE, 0);
-//    TXT_FGColor(TXT_COLOR_BRIGHT_WHITE);
+    TXT_GotoXY(1, 24);
+    TXT_BGColor(TXT_COLOR_BLUE, 0);
+    TXT_FGColor(TXT_COLOR_BRIGHT_WHITE);
 
     for (i=0; smsg[i] != '\0'; ++i) 
     {
-//        TXT_PutChar(smsg[i]);
+        TXT_PutChar(smsg[i]);
     }
 }
 
@@ -550,6 +560,41 @@ void DrawThermo(void)
         return;
     }
 
+#if 0
+    progress = (98 * thermCurrent) / thermMax;
+    screen = (char *) 0xb8000 + (THERM_Y * 160 + THERM_X * 2);
+    for (i = 0; i < progress / 2; i++)
+    {
+        switch (i)
+        {
+            case 4:
+            case 9:
+            case 14:
+            case 19:
+            case 29:
+            case 34:
+            case 39:
+            case 44:
+                *screen++ = 0xb3;
+                *screen++ = (THERMCOLOR << 4) + 15;
+                break;
+            case 24:
+                *screen++ = 0xba;
+                *screen++ = (THERMCOLOR << 4) + 15;
+                break;
+            default:
+                *screen++ = 0xdb;
+                *screen++ = 0x40 + THERMCOLOR;
+                break;
+        }
+    }
+    if (progress & 1)
+    {
+        *screen++ = 0xdd;
+        *screen++ = 0x40 + THERMCOLOR;
+    }
+#else
+
     // No progress? Don't update the screen.
 
     progress = (50 * thermCurrent) / thermMax + 2;
@@ -561,17 +606,18 @@ void DrawThermo(void)
 
     last_progress = progress;
 
-//    TXT_GotoXY(THERM_X, THERM_Y);
+    TXT_GotoXY(THERM_X, THERM_Y);
 
-//    TXT_FGColor(TXT_COLOR_BRIGHT_GREEN);
-//    TXT_BGColor(TXT_COLOR_GREEN, 0);
+    TXT_FGColor(TXT_COLOR_BRIGHT_GREEN);
+    TXT_BGColor(TXT_COLOR_GREEN, 0);
 
     for (i = 0; i < progress; i++)
     {
-//        TXT_PutChar(0xdb);
+        TXT_PutChar(0xdb);
     }
 
-//    TXT_UpdateScreen();
+    TXT_UpdateScreen();
+#endif
 }
 
 void initStartup(void)
@@ -585,28 +631,28 @@ void initStartup(void)
         return;
     }
 
-//    if (!TXT_Init())
-//    {
-//        using_graphical_startup = false;
-//        return;
-//    }
+    if (!TXT_Init()) 
+    {
+        using_graphical_startup = false;
+        return;
+    }
 
-//    I_InitWindowTitle();
-//    I_InitWindowIcon();
+    I_InitWindowTitle();
+    I_InitWindowIcon();
 
     // Blit main screen
-//    textScreen = TXT_GetScreenData();
+    textScreen = TXT_GetScreenData();
     loading = W_CacheLumpName(DEH_String("LOADING"), PU_CACHE);
     memcpy(textScreen, loading, 4000);
 
     // Print version string
 
-//    TXT_BGColor(TXT_COLOR_RED, 0);
-//    TXT_FGColor(TXT_COLOR_YELLOW);
-//    TXT_GotoXY(46, 2);
-//    TXT_Puts(HERETIC_VERSION_TEXT);
+    TXT_BGColor(TXT_COLOR_RED, 0);
+    TXT_FGColor(TXT_COLOR_YELLOW);
+    TXT_GotoXY(46, 2);
+    TXT_Puts(HERETIC_VERSION_TEXT);
 
-//    TXT_UpdateScreen();
+    TXT_UpdateScreen();
 
     using_graphical_startup = true;
 }
@@ -615,14 +661,46 @@ static void finishStartup(void)
 {
     if (using_graphical_startup)
     {
-//        TXT_Shutdown();
+        TXT_Shutdown();
     }
 }
 
 char tmsg[300];
 void tprintf(char *msg, int initflag)
 {
+    // haleyjd FIXME: convert to textscreen code?
+#ifdef __WATCOMC__
+    char temp[80];
+    int start;
+    int add;
+    int i;
+
+    if (initflag)
+        tmsg[0] = 0;
+    M_StringConcat(tmsg, msg, sizeof(tmsg));
+    blitStartup();
+    DrawThermo();
+    _setbkcolor(4);
+    _settextcolor(15);
+    for (add = start = i = 0; i <= strlen(tmsg); i++)
+        if ((tmsg[i] == '\n') || (!tmsg[i]))
+        {
+            memset(temp, 0, 80);
+            M_StringCopy(temp, tmsg + start, sizeof(temp));
+            if (i - start < sizeof(temp))
+            {
+                temp[i - start] = '\0';
+            }
+            _settextposition(MSG_Y + add, 40 - strlen(temp) / 2);
+            _outtext(temp);
+            start = i + 1;
+            add++;
+        }
+    _settextposition(25, 1);
+    drawstatus();
+#else
     printf("%s", msg);
+#endif
 }
 
 // haleyjd: moved up, removed WATCOMC code
@@ -639,8 +717,8 @@ void CheckAbortStartup(void)
     // get input before SDL video init?
     if(using_graphical_startup)
     {
-//        if(TXT_GetChar() == 27)
-//            CleanExit();
+        if(TXT_GetChar() == 27)
+            CleanExit();
     }
 }
 
@@ -669,7 +747,6 @@ void D_BindVariables(void)
 
     M_ApplyPlatformDefaults();
 
-//    I_BindInputVariables();
     I_BindVideoVariables();
     I_BindJoystickVariables();
     I_BindSoundVariables();
@@ -691,22 +768,22 @@ void D_BindVariables(void)
     NET_BindVariables();
 #endif
 
-    M_BindVariable("mouse_sensitivity",      &mouseSensitivity);
-    M_BindVariable("sfx_volume",             &snd_MaxVolume);
-    M_BindVariable("music_volume",           &snd_MusicVolume);
-    M_BindVariable("screenblocks",           &screenblocks);
-    M_BindVariable("snd_channels",           &snd_Channels);
-    M_BindVariable("vanilla_savegame_limit", &vanilla_savegame_limit);
-    M_BindVariable("vanilla_demo_limit",     &vanilla_demo_limit);
-    M_BindVariable("show_endoom",            &show_endoom);
-    M_BindVariable("graphical_startup",      &graphical_startup);
+    M_BindIntVariable("mouse_sensitivity",      &mouseSensitivity);
+    M_BindIntVariable("sfx_volume",             &snd_MaxVolume);
+    M_BindIntVariable("music_volume",           &snd_MusicVolume);
+    M_BindIntVariable("screenblocks",           &screenblocks);
+    M_BindIntVariable("snd_channels",           &snd_Channels);
+    M_BindIntVariable("vanilla_savegame_limit", &vanilla_savegame_limit);
+    M_BindIntVariable("vanilla_demo_limit",     &vanilla_demo_limit);
+    M_BindIntVariable("show_endoom",            &show_endoom);
+    M_BindIntVariable("graphical_startup",      &graphical_startup);
 
     for (i=0; i<10; ++i)
     {
         char buf[12];
 
         M_snprintf(buf, sizeof(buf), "chatmacro%i", i);
-        M_BindVariable(buf, &chat_macros[i]);
+        M_BindStringVariable(buf, &chat_macros[i]);
     }
 }
 

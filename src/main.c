@@ -116,6 +116,8 @@ int main(void)
   /* Configure the system clock to 216 MHz */
   SystemClock_Config();
 
+  BSP_LED_Init(LED_GREEN); // Debug led for sdcard activity
+
 #if defined(DATA_IN_ExtSDRAM)
   /* Initialize the SDRAM */
   BSP_SDRAM_Init();
@@ -149,7 +151,7 @@ int main(void)
   osThreadCreate(osThread(USB_Thread), NULL);
 
   /* Doom task */
-  osThreadDef(DOOM_Thread, DoomThread, osPriorityNormal, 0, 8 * configMINIMAL_STACK_SIZE);
+  osThreadDef(DOOM_Thread, DoomThread, osPriorityNormal, 0, 16 * configMINIMAL_STACK_SIZE);
   thread_id = osThreadCreate(osThread(DOOM_Thread), NULL);
 
   osThreadSuspend (thread_id);
@@ -159,6 +161,11 @@ int main(void)
 
   /* We should never get here as control is now taken by the scheduler */
   for( ;; );
+}
+
+void vApplicationStackOverflowHook( TaskHandle_t xTask, signed char *pcTaskName )
+{
+	for( ;; );
 }
 
 static void USBThread(void const * argument)
