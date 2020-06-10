@@ -1662,10 +1662,6 @@ void G_DoLoadGame(void)
 {
     gameaction = ga_nothing;
     SV_LoadGame(GameLoadSlot);
-    if (!netgame)
-    {                           // Copy the base slot to the reborn slot
-        SV_UpdateRebornSlot();
-    }
     SB_SetClassData();
 }
 

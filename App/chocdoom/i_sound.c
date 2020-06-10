@@ -202,6 +202,14 @@ void BSP_AUDIO_OUT_TransferComplete_CallBack(void)
 
 			channels_playing++;
 		}
+		else if(expanded_sound[i].lump != NULL && \
+				expanded_sound[i].len != 0)
+		{
+			free(expanded_sound[i].lump);
+			expanded_sound[i].lump = NULL;
+			expanded_sound[i].len = 0;
+			expanded_sound[i].pos = 0;
+		}
 	}
 
 	if(channels_playing == 0)
@@ -228,6 +236,14 @@ void BSP_AUDIO_OUT_HalfTransfer_CallBack(void)
 			expanded_sound[i].pos += AUDIO_BUFFER_SIZE / 2;
 
 			channels_playing++;
+		}
+		else if(expanded_sound[i].lump != NULL && \
+				expanded_sound[i].len != 0)
+		{
+			free(expanded_sound[i].lump);
+			expanded_sound[i].lump = NULL;
+			expanded_sound[i].len = 0;
+			expanded_sound[i].pos = 0;
 		}
 	}
 
@@ -500,9 +516,17 @@ int I_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch)
 		return -1;
 	}
 
-	if (channel > NUM_CHANNELS - 1)
+	if (channel >= NUM_CHANNELS)
 	{
 		return -1;
+	}
+
+	if (expanded_sound[channel].lump != NULL)
+	{
+		free(expanded_sound[channel].lump);
+		expanded_sound[channel].lump = NULL;
+		expanded_sound[channel].len = 0;
+		expanded_sound[channel].pos = 0;
 	}
 
 	current_sound_lump_num = sfxinfo->lumpnum;
@@ -526,6 +550,11 @@ int I_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch)
 	length -= 32;
 
 	expanded_sound[channel].lump = (uint32_t *) malloc(length * 4);
+
+	if (expanded_sound[channel].lump == NULL)
+	{
+		return -1;
+	}
 
 	U8M_to_S16S_BuffConv(current_sound_lump, length, expanded_sound[channel].lump);
 
@@ -584,7 +613,7 @@ boolean I_SoundIsPlaying(int channel)
 #endif
 	if (!s_initialized)
 	{
-    		return false;
+		return false;
 	}
 
 	return expanded_sound[channel].lump != NULL;

@@ -1930,7 +1930,7 @@ void SV_SaveGame(int slot, char *description)
     unsigned int i;
 
     // Open the output file
-    M_snprintf(fileName, sizeof(fileName), "%shex6.hxs", SavePath);
+	M_snprintf(fileName, sizeof(fileName), "%shex%d.hxs", SavePath, slot);
     SV_OpenWrite(fileName);
 
     // Write game save description
@@ -1968,13 +1968,7 @@ void SV_SaveGame(int slot, char *description)
     SV_Close();
 
     // Save out the current map
-    SV_SaveMap(true);           // true = save player info
-
-    // Clear all save files at destination slot
-    ClearSaveSlot(slot);
-
-    // Copy base slot to destination slot
-    CopySaveSlot(BASE_SLOT, slot);
+    SV_SaveMap(true, slot);           // true = save player info
 }
 
 //==========================================================================
@@ -1983,14 +1977,14 @@ void SV_SaveGame(int slot, char *description)
 //
 //==========================================================================
 
-void SV_SaveMap(boolean savePlayers)
+void SV_SaveMap(boolean savePlayers, int slot)
 {
     char fileName[100];
 
     SavingPlayers = savePlayers;
 
     // Open the output file
-    M_snprintf(fileName, sizeof(fileName), "%shex6%02d.hxs", SavePath, gamemap);
+	M_snprintf(fileName, sizeof(fileName), "%shex%d%02d.hxs", SavePath, slot, gamemap);
     SV_OpenWrite(fileName);
 
     // Place a header marker
@@ -2031,15 +2025,8 @@ void SV_LoadGame(int slot)
     player_t playerBackup[MAXPLAYERS];
     mobj_t *mobj;
 
-    // Copy all needed save files to the base slot
-    if (slot != BASE_SLOT)
-    {
-        ClearSaveSlot(BASE_SLOT);
-        CopySaveSlot(slot, BASE_SLOT);
-    }
-
     // Create the name
-    M_snprintf(fileName, sizeof(fileName), "%shex6.hxs", SavePath);
+	M_snprintf(fileName, sizeof(fileName), "%shex%d.hxs", SavePath, slot);
 
     // Load the file
     SV_OpenRead(fileName);
@@ -2090,7 +2077,7 @@ void SV_LoadGame(int slot)
     SV_Close();
 
     // Load the current map
-    SV_LoadMap();
+    SV_LoadMap(slot);
 
     // Don't need the player mobj relocation info for load game
     Z_Free(TargetPlayerAddrs);
@@ -2162,7 +2149,7 @@ void SV_MapTeleport(int map, int position)
     {
         if (P_GetMapCluster(gamemap) == P_GetMapCluster(map))
         {                       // Same cluster - save map without saving player mobjs
-            SV_SaveMap(false);
+            SV_SaveMap(false, BASE_SLOT);
         }
         else
         {                       // Entering new cluster - clear base slot
@@ -2190,7 +2177,7 @@ void SV_MapTeleport(int map, int position)
     M_snprintf(fileName, sizeof(fileName), "%shex6%02d.hxs", SavePath, gamemap);
     if (!deathmatch && ExistingFile(fileName))
     {                           // Unarchive map
-        SV_LoadMap();
+        SV_LoadMap(BASE_SLOT);
     }
     else
     {                           // New map
@@ -2347,7 +2334,7 @@ boolean SV_RebornSlotAvailable(void)
 //
 //==========================================================================
 
-void SV_LoadMap(void)
+void SV_LoadMap(int slot)
 {
     char fileName[100];
 
@@ -2358,7 +2345,7 @@ void SV_LoadMap(void)
     RemoveAllThinkers();
 
     // Create the name
-    M_snprintf(fileName, sizeof(fileName), "%shex6%02d.hxs", SavePath, gamemap);
+	M_snprintf(fileName, sizeof(fileName), "%shex%d%02d.hxs", SavePath, slot, gamemap);
 
     // Load the file
     SV_OpenRead(fileName);
@@ -3252,7 +3239,7 @@ static void CopySaveSlot(int sourceSlot, int destSlot)
 
 static void CopyFile(char *source_name, char *dest_name)
 {
-    const int BUFFER_CHUNK_SIZE = 0x10000;
+    const int BUFFER_CHUNK_SIZE = 0x200;
 
     byte *buffer;
     int file_length, file_remaining;
