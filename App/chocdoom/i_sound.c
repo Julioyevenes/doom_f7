@@ -123,6 +123,8 @@ typedef struct _ExpandedSoundType
 	uint32_t *lump;
 	uint32_t len;
 	uint32_t pos;
+
+	uint8_t vol;
 } ExpandedSoundType;
 
 #define NUM_CHANNELS 8
@@ -134,8 +136,6 @@ static ExpandedSoundType expanded_sound[NUM_CHANNELS];
 
 static boolean s_initialized = false;
 static boolean sfx_prefix;
-
-static uint8_t current_vol = 80;
 
 static uint8_t *current_sound_lump = NULL;
 static int current_sound_lump_num = -1;
@@ -156,7 +156,7 @@ void U8M_to_S16S_BuffConv(uint8_t *inbuff, uint16_t inbuffSize, uint32_t *outbuf
 	}
 }
 
-void MixAudio(uint8_t *dst, const uint8_t *src, uint32_t len)
+void MixAudio(uint8_t *dst, const uint8_t *src, uint32_t len, uint8_t dst_vol, uint8_t src_vol)
 {
 	int16_t src1, src2;
 	int dst_sample;
@@ -166,8 +166,8 @@ void MixAudio(uint8_t *dst, const uint8_t *src, uint32_t len)
 	len /= 2;
 	while ( len-- )
 	{
-		src1 = ((src[1])<<8|src[0]);
-		src2 = ((dst[1])<<8|dst[0]);
+		src1 = (int16_t) ( (float) ((src[1])<<8|src[0]) )*( (float) src_vol / 100);
+		src2 = (int16_t) ( (float) ((dst[1])<<8|dst[0]) )*( (float) dst_vol / 100);
 		src += 2;
 		dst_sample = (src1 + src2) / 2;
 		if ( dst_sample > max_audioval )
@@ -193,10 +193,12 @@ void BSP_AUDIO_OUT_TransferComplete_CallBack(void)
 	{
 		if(expanded_sound[i].pos < expanded_sound[i].len)
 		{
-			MixAudio( &audio_buffer[AUDIO_BUFFER_SIZE / 2],
-				  expanded_sound[i].lump + \
-				  (expanded_sound[i].pos / 4),
-				  AUDIO_BUFFER_SIZE / 2 );
+			MixAudio( 	&audio_buffer[AUDIO_BUFFER_SIZE / 2],
+						expanded_sound[i].lump + \
+						(expanded_sound[i].pos / 4),
+						AUDIO_BUFFER_SIZE / 2,
+						100,
+						expanded_sound[i].vol);
 
 			expanded_sound[i].pos += AUDIO_BUFFER_SIZE / 2;
 
@@ -215,8 +217,8 @@ void BSP_AUDIO_OUT_TransferComplete_CallBack(void)
 	if(channels_playing == 0)
 	{
 		memset(	&audio_buffer[AUDIO_BUFFER_SIZE / 2],
-			0,
-			AUDIO_BUFFER_SIZE / 2 );
+				0,
+				AUDIO_BUFFER_SIZE / 2 );
 	}
 }
 
@@ -228,10 +230,12 @@ void BSP_AUDIO_OUT_HalfTransfer_CallBack(void)
 	{
 		if(expanded_sound[i].pos < expanded_sound[i].len)
 		{
-			MixAudio( &audio_buffer[0],
-				  expanded_sound[i].lump + \
-				  (expanded_sound[i].pos / 4),
-				  AUDIO_BUFFER_SIZE / 2 );
+			MixAudio( 	&audio_buffer[0],
+						expanded_sound[i].lump + \
+						(expanded_sound[i].pos / 4),
+						AUDIO_BUFFER_SIZE / 2,
+						100,
+						expanded_sound[i].vol);
 
 			expanded_sound[i].pos += AUDIO_BUFFER_SIZE / 2;
 
@@ -250,8 +254,8 @@ void BSP_AUDIO_OUT_HalfTransfer_CallBack(void)
 	if(channels_playing == 0)
 	{
 		memset(	&audio_buffer[0],
-			0,
-			AUDIO_BUFFER_SIZE / 2 );
+				0,
+				AUDIO_BUFFER_SIZE / 2 );
 	}
 }
 
@@ -393,7 +397,7 @@ void I_InitSound(boolean use_sfx_prefix)
 #endif
 	sfx_prefix = use_sfx_prefix;
 
-	if( BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_BOTH, current_vol, 11025) == 0 )
+	if( BSP_AUDIO_OUT_Init(OUTPUT_DEVICE_BOTH, 80, 11025) == 0 )
 	{
 		BSP_AUDIO_OUT_SetAudioFrameSlot(CODEC_AUDIOFRAME_SLOT_02);
 
@@ -566,13 +570,7 @@ int I_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch)
 
 	expanded_sound[channel].len = length * 4;
 	expanded_sound[channel].pos = 0;
-
-	if(vol != current_vol)
-	{
-		BSP_AUDIO_OUT_SetVolume((vol*100)/255);
-
-		current_vol = vol;
-	}
+	expanded_sound[channel].vol = (vol*100)/255;
 
 	return channel;
 }

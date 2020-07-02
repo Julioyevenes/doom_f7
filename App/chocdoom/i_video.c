@@ -262,6 +262,14 @@ void I_GetEvent (void)
 							case KB_KEY_6_CARET:
 								event.data1 = '6';
 								break;
+
+							case KB_KEY_RIGHTARROW:
+								event.data1 = KEY_RIGHTARROW;
+								break;
+
+							case KB_KEY_LEFTARROW:
+								event.data1 = KEY_LEFTARROW;
+								break;
 						}
 
 						D_PostEvent (&event);
